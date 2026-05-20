@@ -22,11 +22,14 @@ import java.util.List;
 public class AdminItemService {
   private final ItemDefinitionRepository itemDefinitionRepository;
   private final ItemRequirementRepository itemRequirementRepository;
+  private final CatalogService catalogService;
 
   public AdminItemService(ItemDefinitionRepository itemDefinitionRepository,
-                          ItemRequirementRepository itemRequirementRepository) {
+                          ItemRequirementRepository itemRequirementRepository,
+                          CatalogService catalogService) {
     this.itemDefinitionRepository = itemDefinitionRepository;
     this.itemRequirementRepository = itemRequirementRepository;
+    this.catalogService = catalogService;
   }
 
   @Transactional(readOnly = true)
@@ -72,5 +75,7 @@ public class AdminItemService {
       }
     }
     itemDefinitionRepository.save(item);
+    // Refresh the in-memory catalog so the edit takes effect on the running game.
+    catalogService.reload();
   }
 }

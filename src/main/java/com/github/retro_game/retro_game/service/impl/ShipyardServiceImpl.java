@@ -306,8 +306,7 @@ public class ShipyardServiceImpl implements ShipyardServiceInternal {
     while (it.hasNext()) {
       var entry = it.next();
 
-      var item = Item.get(entry.kind());
-      var itemTime = getConstructionTime(item.getCost(), body);
+      var itemTime = getConstructionTime(ItemCostUtils.getCost(entry.kind()), body);
       long maxBuilt;
       if (itemTime >= 1000) {
         assert itemTime % 1000 == 0;

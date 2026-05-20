@@ -2,6 +2,7 @@ package com.github.retro_game.retro_game.service.impl;
 
 import com.github.retro_game.retro_game.dto.*;
 import com.github.retro_game.retro_game.entity.*;
+import com.github.retro_game.retro_game.model.ItemCostUtils;
 import com.github.retro_game.retro_game.model.unit.UnitItem;
 import com.github.retro_game.retro_game.repository.*;
 import com.github.retro_game.retro_game.security.CustomUser;
@@ -424,8 +425,7 @@ class ReportServiceImpl implements ReportServiceInternal {
   private long calculateUnitsCost(Map<UnitKind, Integer> units) {
     long sum = 0;
     for (Map.Entry<UnitKind, Integer> entry : units.entrySet()) {
-      UnitItem item = UnitItem.getAll().get(entry.getKey());
-      Resources cost = item.getCost();
+      Resources cost = ItemCostUtils.getCost(entry.getKey());
       sum += entry.getValue() * (long) (cost.getMetal() + cost.getCrystal() + cost.getDeuterium());
     }
     return sum;

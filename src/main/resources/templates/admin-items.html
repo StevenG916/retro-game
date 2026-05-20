@@ -14,6 +14,17 @@
       <td th:text="#{itemSaved}">The item was saved!</td>
     </tr>
   </table>
+  <table th:if="${param.created}">
+    <tr>
+      <th th:text="#{created}">Created</th>
+    </tr>
+    <tr>
+      <td th:text="#{itemCreated}">The item was created!</td>
+    </tr>
+  </table>
+  <p>
+    <a th:href="@{/admin/items/create}" th:text="#{createItem}">Create item</a>
+  </p>
   <table>
     <tr>
       <th colspan="6" th:text="#{items}">Items</th>

@@ -1,8 +1,10 @@
 package com.github.retro_game.retro_game.service;
 
+import com.github.retro_game.retro_game.controller.form.AdminItemCreateForm;
 import com.github.retro_game.retro_game.controller.form.AdminItemForm;
 import com.github.retro_game.retro_game.entity.ItemDefinition;
 import com.github.retro_game.retro_game.entity.ItemRequirement;
+import com.github.retro_game.retro_game.entity.ItemType;
 import com.github.retro_game.retro_game.repository.ItemDefinitionRepository;
 import com.github.retro_game.retro_game.repository.ItemRequirementRepository;
 import org.springframework.data.domain.Sort;
@@ -12,11 +14,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 /**
- * Read/update operations on the content catalog, used by the admin panel.
+ * Read/write operations on the content catalog, used by the admin panel.
  *
- * <p>Phase 1 supports listing items and editing an existing item's values;
- * creating brand-new items arrives in a later phase, once player state no
- * longer depends on the fixed enum set.
+ * <p>Supports listing items, editing an existing item's values, and creating
+ * brand-new items. A created item is added to the catalog right away; the game
+ * acts on it once the catalog — rather than the fixed Java enum set — becomes
+ * its item registry in a later phase.
  */
 @Service
 public class AdminItemService {
@@ -76,6 +79,57 @@ public class AdminItemService {
     }
     itemDefinitionRepository.save(item);
     // Refresh the in-memory catalog so the edit takes effect on the running game.
+    catalogService.reload();
+  }
+
+  /**
+   * Creates a brand-new catalog item. The {@code kind} must not already be in
+   * use. Only the fields relevant to the chosen {@link ItemType} are applied,
+   * mirroring {@link #updateItem}.
+   *
+   * @throws IllegalArgumentException if the kind is taken, a building or
+   *                                  technology has a cost factor below 1, or a
+   *                                  unit has no unit type
+   */
+  @Transactional
+  public void createItem(AdminItemCreateForm form) {
+    var kind = form.getKind();
+    if (itemDefinitionRepository.findByKind(kind).isPresent()) {
+      throw new IllegalArgumentException("An item with kind '" + kind + "' already exists");
+    }
+    var type = form.getType();
+    if ((type == ItemType.BUILDING || type == ItemType.TECHNOLOGY) && form.getCostFactor() < 1.0) {
+      throw new IllegalArgumentException("The cost factor of a building or technology must be at least 1");
+    }
+    if (type == ItemType.UNIT && form.getUnitType() == null) {
+      throw new IllegalArgumentException("A unit must have a unit type (FLEET or DEFENSE)");
+    }
+
+    var item = new ItemDefinition();
+    item.setType(type);
+    item.setKind(kind);
+    item.setName(form.getName());
+    item.setMetalCost(form.getMetalCost());
+    item.setCrystalCost(form.getCrystalCost());
+    item.setDeuteriumCost(form.getDeuteriumCost());
+    switch (type) {
+      case BUILDING -> {
+        item.setCostFactor(form.getCostFactor());
+        item.setBaseEnergy(form.getBaseEnergy());
+      }
+      case TECHNOLOGY -> item.setCostFactor(form.getCostFactor());
+      case UNIT -> {
+        // Units have a flat cost, but cost_factor is still NOT NULL and >= 1.
+        item.setCostFactor(1.0);
+        item.setUnitType(form.getUnitType());
+        item.setCapacity(form.getCapacity());
+        item.setWeapons(form.getWeapons());
+        item.setShield(form.getShield());
+        item.setArmor(form.getArmor());
+      }
+    }
+    itemDefinitionRepository.save(item);
+    // Refresh the in-memory catalog so the new item is visible to the running game.
     catalogService.reload();
   }
 }

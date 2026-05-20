@@ -1,7 +1,10 @@
 package com.github.retro_game.retro_game.controller;
 
+import com.github.retro_game.retro_game.controller.form.AdminItemCreateForm;
 import com.github.retro_game.retro_game.controller.form.AdminItemForm;
 import com.github.retro_game.retro_game.entity.ItemDefinition;
+import com.github.retro_game.retro_game.entity.ItemType;
+import com.github.retro_game.retro_game.entity.UnitType;
 import com.github.retro_game.retro_game.service.AdminItemService;
 import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
@@ -14,8 +17,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 /**
  * Admin panel screens for the content catalog: list every building, technology
- * and unit, and edit an individual item's values. Access is gated by the
- * {@code /admin/**} rule in {@code SecurityConfig}.
+ * and unit, edit an individual item's values, and create new items. Access is
+ * gated by the {@code /admin/**} rule in {@code SecurityConfig}.
  */
 @Controller
 public class AdminItemController {
@@ -23,6 +26,18 @@ public class AdminItemController {
 
   public AdminItemController(AdminItemService adminItemService) {
     this.adminItemService = adminItemService;
+  }
+
+  // Exposed to every screen in this controller so the create form can render
+  // the type and unit-type drop-downs.
+  @ModelAttribute("itemTypes")
+  public ItemType[] itemTypes() {
+    return ItemType.values();
+  }
+
+  @ModelAttribute("unitTypes")
+  public UnitType[] unitTypes() {
+    return UnitType.values();
   }
 
   @GetMapping("/admin/items")
@@ -52,5 +67,27 @@ public class AdminItemController {
     }
     adminItemService.updateItem(itemForm);
     return "redirect:/admin/items?saved";
+  }
+
+  @GetMapping("/admin/items/create")
+  public String createForm(@ModelAttribute("itemForm") AdminItemCreateForm itemForm) {
+    // Declaring the form as a @ModelAttribute also registers an (empty)
+    // BindingResult, so the template's error helpers work on the first render.
+    return "admin-item-create";
+  }
+
+  @PostMapping("/admin/items/create")
+  public String create(@Valid @ModelAttribute("itemForm") AdminItemCreateForm itemForm,
+                        BindingResult bindingResult) {
+    if (!bindingResult.hasErrors()) {
+      try {
+        adminItemService.createItem(itemForm);
+        return "redirect:/admin/items?created";
+      } catch (IllegalArgumentException e) {
+        // Surface the rejection (duplicate kind, bad cost factor, ...) on the form.
+        bindingResult.reject("createItemFailed", e.getMessage());
+      }
+    }
+    return "admin-item-create";
   }
 }

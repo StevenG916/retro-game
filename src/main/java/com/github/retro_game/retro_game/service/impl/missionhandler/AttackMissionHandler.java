@@ -8,6 +8,7 @@ import com.github.retro_game.retro_game.dto.MoonCreationResultDto;
 import com.github.retro_game.retro_game.dto.MoonDestructionResultDto;
 import com.github.retro_game.retro_game.entity.*;
 import com.github.retro_game.retro_game.model.Item;
+import com.github.retro_game.retro_game.model.ItemCostUtils;
 import com.github.retro_game.retro_game.model.unit.UnitItem;
 import com.github.retro_game.retro_game.repository.*;
 import com.github.retro_game.retro_game.service.ActivityService;
@@ -388,7 +389,7 @@ public class AttackMissionHandler {
       units[kind.ordinal()] = (int) numAfterRebuild;
 
       var numLostAfterRebuild = numBeforeBattle - numAfterRebuild;
-      var cost = Item.get(kind).getCost();
+      var cost = ItemCostUtils.getCost(kind);
       cost.mul(numLostAfterRebuild);
       var loss = isFleet ? fleetLoss : defenseLoss;
       loss.add(cost);

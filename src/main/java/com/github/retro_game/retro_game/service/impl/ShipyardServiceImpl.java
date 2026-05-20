@@ -3,6 +3,7 @@ package com.github.retro_game.retro_game.service.impl;
 import com.github.retro_game.retro_game.dto.*;
 import com.github.retro_game.retro_game.entity.*;
 import com.github.retro_game.retro_game.model.Item;
+import com.github.retro_game.retro_game.model.ItemCostUtils;
 import com.github.retro_game.retro_game.model.ItemRequirementsUtils;
 import com.github.retro_game.retro_game.model.ItemTimeUtils;
 import com.github.retro_game.retro_game.model.ItemUtils;
@@ -59,9 +60,7 @@ public class ShipyardServiceImpl implements ShipyardServiceInternal {
       var count = entry.count();
       assert count >= 1;
 
-      var item = Item.get(kind);
-
-      var unitCost = item.getCost();
+      var unitCost = ItemCostUtils.getCost(kind);
       var totalCost = new Resources(unitCost);
       totalCost.mul(count);
 
@@ -120,7 +119,7 @@ public class ShipyardServiceImpl implements ShipyardServiceInternal {
         continue;
       }
 
-      var cost = item.getCost();
+      var cost = ItemCostUtils.getCost(kind);
       var time = getConstructionTime(cost, body);
 
       var missingResources = new Resources(cost);
@@ -218,7 +217,7 @@ public class ShipyardServiceImpl implements ShipyardServiceInternal {
       throw new RequirementsNotMetException();
     }
 
-    Resources cost = item.getCost();
+    Resources cost = ItemCostUtils.getCost(k);
     cost.mul(count);
     if (!body.getResources().greaterOrEqual(cost)) {
       logger.info("Constructing unit failed, not enough resources: bodyId={} kind={} count={}", bodyId, k, count);

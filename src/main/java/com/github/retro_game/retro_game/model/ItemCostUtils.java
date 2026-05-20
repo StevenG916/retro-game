@@ -4,6 +4,7 @@ import com.github.retro_game.retro_game.entity.BuildingKind;
 import com.github.retro_game.retro_game.entity.ItemDefinition;
 import com.github.retro_game.retro_game.entity.Resources;
 import com.github.retro_game.retro_game.entity.TechnologyKind;
+import com.github.retro_game.retro_game.entity.UnitKind;
 import com.github.retro_game.retro_game.service.CatalogService;
 
 // A helper for cost & required energy calculation.
@@ -34,6 +35,11 @@ public class ItemCostUtils {
     cost.mul(100.0);
     cost.floor();
     return cost;
+  }
+
+  public static Resources getCost(UnitKind kind) {
+    // Units have a flat cost: no level, no cost factor.
+    return baseCost(CatalogService.getInstance().getDefinition(kind.name()));
   }
 
   public static int getRequiredEnergy(BuildingKind kind, int level) {

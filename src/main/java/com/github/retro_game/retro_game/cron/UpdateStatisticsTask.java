@@ -47,11 +47,11 @@ class UpdateStatisticsTask {
   private String createUpdateBuildingsStatisticsSql() {
     var joiner = new StringJoiner(" + ");
     for (var kind : BuildingItem.getAll().keySet()) {
-      var index = kind.ordinal() + 1; // Postgres counts from 1.
       var definition = catalogService.getDefinition(kind.name());
       var total = definition.getMetalCost() + definition.getCrystalCost() + definition.getDeuteriumCost();
       var factor = definition.getCostFactor();
-      joiner.add(String.format(Locale.US, "%f * (%f ^ b.buildings[%d] - 1)", total / (factor - 1), factor, index));
+      joiner.add(String.format(Locale.US, "%f * (%f ^ coalesce((b.buildings->>'%s')::int, 0) - 1)",
+          total / (factor - 1), factor, kind.name()));
     }
     return "" +
         "with p as (" +
@@ -73,11 +73,11 @@ class UpdateStatisticsTask {
   private String createUpdateTechnologiesStatisticsSql() {
     var joiner = new StringJoiner(" + ");
     for (var kind : TechnologyItem.getAll().keySet()) {
-      var index = kind.ordinal() + 1; // Postgres counts from 1.
       var definition = catalogService.getDefinition(kind.name());
       var total = definition.getMetalCost() + definition.getCrystalCost() + definition.getDeuteriumCost();
       var factor = definition.getCostFactor();
-      joiner.add(String.format(Locale.US, "%f * (%f ^ u.technologies[%d] - 1)", total / (factor - 1), factor, index));
+      joiner.add(String.format(Locale.US, "%f * (%f ^ coalesce((u.technologies->>'%s')::int, 0) - 1)",
+          total / (factor - 1), factor, kind.name()));
     }
     return "" +
         "with p as (" +
@@ -96,10 +96,9 @@ class UpdateStatisticsTask {
   private String createUpdateUnitsStatisticsSql(String kind, Map<UnitKind, UnitItem> units) {
     var joiner = new StringJoiner(" + ");
     for (var unitKind : units.keySet()) {
-      var index = unitKind.ordinal() + 1; // Postgres counts from 1.
       var definition = catalogService.getDefinition(unitKind.name());
       var total = definition.getMetalCost() + definition.getCrystalCost() + definition.getDeuteriumCost();
-      joiner.add(String.format(Locale.US, "%f * units[%d]", total, index));
+      joiner.add(String.format(Locale.US, "%f * coalesce((units->>'%s')::int, 0)", total, unitKind.name()));
     }
     return String.format("" +
         "with p as (" +

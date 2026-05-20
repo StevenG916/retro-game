@@ -1,6 +1,7 @@
 package com.github.retro_game.retro_game.entity;
 
 import io.hypersistence.utils.hibernate.type.array.IntArrayType;
+import io.hypersistence.utils.hibernate.type.json.JsonBinaryType;
 import org.hibernate.annotations.Type;
 
 import jakarta.persistence.*;
@@ -59,13 +60,15 @@ public class Body implements Serializable {
   @Temporal(TemporalType.TIMESTAMP)
   private Date shipyardStartAt;
 
+  // Building levels and unit counts, each keyed by item name, e.g. {"METAL_MINE": 5}.
+  // An item absent from the map counts as 0.
   @Column(name = "buildings", nullable = false)
-  @Type(IntArrayType.class)
-  private int[] buildingsArray;
+  @Type(JsonBinaryType.class)
+  private Map<String, Integer> buildings = new HashMap<>();
 
   @Column(name = "units", nullable = false)
-  @Type(IntArrayType.class)
-  private int[] unitsArray;
+  @Type(JsonBinaryType.class)
+  private Map<String, Integer> units = new HashMap<>();
 
   @Column(name = "building_queue", nullable = false)
   @Type(IntArrayType.class)
@@ -184,53 +187,41 @@ public class Body implements Serializable {
   }
 
   public EnumMap<BuildingKind, Integer> getBuildings() {
-    return SerializationUtils.deserializeItems(BuildingKind.class, buildingsArray);
+    return ItemMaps.toEnumMap(BuildingKind.class, buildings);
   }
 
   public void setBuildings(Map<BuildingKind, Integer> buildings) {
-    buildingsArray = SerializationUtils.serializeItems(BuildingKind.class, buildings);
+    this.buildings = ItemMaps.toStored(buildings);
   }
 
   public int getBuildingLevel(BuildingKind kind) {
-    var index = kind.ordinal();
-    var level = buildingsArray[index];
-    assert level >= 0;
-    return level;
+    return ItemMaps.get(buildings, kind);
   }
 
   public void setBuildingLevel(BuildingKind kind, int level) {
     assert level >= 0;
-    var index = kind.ordinal();
-    buildingsArray[index] = level;
-  }
-
-  public int[] getUnitsArray() {
-    return unitsArray;
+    buildings.put(kind.name(), level);
   }
 
   public EnumMap<UnitKind, Integer> getUnits() {
-    return SerializationUtils.deserializeItems(UnitKind.class, unitsArray);
+    return ItemMaps.toEnumMap(UnitKind.class, units);
   }
 
   public void setUnits(Map<UnitKind, Integer> units) {
-    unitsArray = SerializationUtils.serializeItems(UnitKind.class, units);
+    this.units = ItemMaps.toStored(units);
   }
 
   public int getUnitsCount(UnitKind kind) {
-    var index = kind.ordinal();
-    var count = unitsArray[index];
-    assert count >= 0;
-    return count;
+    return ItemMaps.get(units, kind);
   }
 
   public void setUnitsCount(UnitKind kind, int count) {
     assert count >= 0;
-    var index = kind.ordinal();
-    unitsArray[index] = count;
+    units.put(kind.name(), count);
   }
 
   public int getTotalUnitsCount() {
-    return Arrays.stream(unitsArray).sum();
+    return units.values().stream().mapToInt(Integer::intValue).sum();
   }
 
   public SortedMap<Integer, BuildingQueueEntry> getBuildingQueue() {

@@ -1,11 +1,13 @@
 package com.github.retro_game.retro_game.entity;
 
-import io.hypersistence.utils.hibernate.type.array.IntArrayType;
+import io.hypersistence.utils.hibernate.type.json.JsonBinaryType;
 import org.hibernate.annotations.Type;
 
 import jakarta.persistence.*;
 import java.util.Date;
 import java.util.EnumMap;
+import java.util.HashMap;
+import java.util.Map;
 
 @Entity
 @Table(name = "flight_view")
@@ -71,11 +73,11 @@ public class FlightView {
   private Resources resources;
 
   @Column(name = "units", nullable = false, insertable = false, updatable = false)
-  @Type(IntArrayType.class)
-  private int[] unitsArray;
+  @Type(JsonBinaryType.class)
+  private Map<String, Integer> units = new HashMap<>();
 
   public EnumMap<UnitKind, Integer> getUnits() {
-    return SerializationUtils.deserializeItems(UnitKind.class, unitsArray);
+    return ItemMaps.toEnumMap(UnitKind.class, units);
   }
 
   public long getId() {

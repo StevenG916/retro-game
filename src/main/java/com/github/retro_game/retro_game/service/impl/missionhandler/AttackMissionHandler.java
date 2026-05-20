@@ -185,18 +185,27 @@ public class AttackMissionHandler {
     var defendersLoss = Loss.zero();
     var attackersAlive = false;
     var defendersAlive = false;
+    // getUnits() returns a snapshot, so the rebuilt counts are written back explicitly.
     for (var i = 0; i < attackersFlights.size(); i++) {
-      var pair = rebuildAndDeleteDestroyedUnits(attackersFlights.get(i).getUnitsArray(), getAttackerStats.apply(i));
+      var flight = attackersFlights.get(i);
+      var units = flight.getUnits();
+      var pair = rebuildAndDeleteDestroyedUnits(units, getAttackerStats.apply(i));
+      flight.setUnits(units);
       attackersLoss.add(pair.loss);
       attackersAlive |= pair.alive;
     }
     {
-      var pair = rebuildAndDeleteDestroyedUnits(targetBody.getUnitsArray(), getDefenderStats.apply(0));
+      var units = targetBody.getUnits();
+      var pair = rebuildAndDeleteDestroyedUnits(units, getDefenderStats.apply(0));
+      targetBody.setUnits(units);
       defendersLoss.add(pair.loss);
       defendersAlive = pair.alive;
     }
     for (var i = 0; i < defendersFlights.size(); i++) {
-      var pair = rebuildAndDeleteDestroyedUnits(defendersFlights.get(i).getUnitsArray(), getDefenderStats.apply(i + 1));
+      var flight = defendersFlights.get(i);
+      var units = flight.getUnits();
+      var pair = rebuildAndDeleteDestroyedUnits(units, getDefenderStats.apply(i + 1));
+      flight.setUnits(units);
       defendersLoss.add(pair.loss);
       defendersAlive |= pair.alive;
     }
@@ -332,15 +341,15 @@ public class AttackMissionHandler {
   }
 
   private static Combatant makeCombatantFromBody(Body body) {
-    return makeCombatant(body.getUser(), body.getCoordinates(), body.getUnitsArray());
+    return makeCombatant(body.getUser(), body.getCoordinates(), body.getUnits());
   }
 
   private static Combatant makeCombatantFromFlight(Flight flight) {
     var coordinates = flight.getStartBody().getCoordinates();
-    return makeCombatant(flight.getStartUser(), coordinates, flight.getUnitsArray());
+    return makeCombatant(flight.getStartUser(), coordinates, flight.getUnits());
   }
 
-  private static Combatant makeCombatant(User user, Coordinates coordinates, int[] units) {
+  private static Combatant makeCombatant(User user, Coordinates coordinates, Map<UnitKind, Integer> units) {
     var weaponsTech = user.getTechnologyLevel(TechnologyKind.WEAPONS_TECHNOLOGY);
     var shieldingTech = user.getTechnologyLevel(TechnologyKind.SHIELDING_TECHNOLOGY);
     var armorTech = user.getTechnologyLevel(TechnologyKind.ARMOR_TECHNOLOGY);
@@ -349,11 +358,10 @@ public class AttackMissionHandler {
     return new Combatant(user.getId(), coordinates, weaponsTech, shieldingTech, armorTech, unitGroups);
   }
 
-  private static EnumMap<UnitKind, Long> makeUnitGroups(int[] units) {
-    assert units.length == UnitKind.values().length;
+  private static EnumMap<UnitKind, Long> makeUnitGroups(Map<UnitKind, Integer> units) {
     var groups = new EnumMap<UnitKind, Long>(UnitKind.class);
     for (var kind : fightUnitKinds) {
-      var count = units[kind.ordinal()];
+      var count = units.getOrDefault(kind, 0);
       assert count >= 0;
       if (count == 0) {
         continue;
@@ -363,13 +371,14 @@ public class AttackMissionHandler {
     return groups;
   }
 
-  private LossAlivePair rebuildAndDeleteDestroyedUnits(int[] units, Map<UnitKind, UnitGroupStats> lastRoundStats) {
+  private LossAlivePair rebuildAndDeleteDestroyedUnits(Map<UnitKind, Integer> units,
+                                                       Map<UnitKind, UnitGroupStats> lastRoundStats) {
     var fleetLoss = new Resources();
     var defenseLoss = new Resources();
     var alive = false;
 
     for (var kind : fightUnitKinds) {
-      var numBeforeBattle = (long) units[kind.ordinal()];
+      var numBeforeBattle = (long) units.getOrDefault(kind, 0);
       var numAfterBattle = lastRoundStats.get(kind).numRemainingUnits();
       assert numBeforeBattle >= 0 && numAfterBattle >= 0 && numAfterBattle <= numBeforeBattle;
 
@@ -386,7 +395,7 @@ public class AttackMissionHandler {
       var numAfterRebuild = numAfterBattle + numRebuilt;
       assert numAfterRebuild <= numBeforeBattle;
 
-      units[kind.ordinal()] = (int) numAfterRebuild;
+      units.put(kind, (int) numAfterRebuild);
 
       var numLostAfterRebuild = numBeforeBattle - numAfterRebuild;
       var cost = ItemCostUtils.getCost(kind);
@@ -582,7 +591,7 @@ public class AttackMissionHandler {
     var i = 0;
     for (var flight : flights) {
       boolean excludeEspionageProbes = !espionageProbeRaiding;
-      var capacity = calcCapacity(flight.getUnitsArray(), excludeEspionageProbes);
+      var capacity = calcCapacity(flight.getUnits(), excludeEspionageProbes);
       capacity -= (long) Math.ceil(flight.getResources().total());
       capacity = Math.max(0L, capacity);
       states[i++] = new FlightPlunderState(flight, new Resources(), capacity);
@@ -636,10 +645,10 @@ public class AttackMissionHandler {
   }
 
   // TODO: Move somewhere else.
-  private static long calcCapacity(int[] units, boolean excludeEspionageProbes) {
+  private static long calcCapacity(Map<UnitKind, Integer> units, boolean excludeEspionageProbes) {
     var capacity = 0L;
     for (var kind : fightUnitKinds) {
-      var count = units[kind.ordinal()];
+      var count = units.getOrDefault(kind, 0);
       assert count >= 0;
       if (count == 0) {
         continue;

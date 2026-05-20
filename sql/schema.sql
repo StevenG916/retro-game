@@ -44,7 +44,8 @@ create table users (
   flags integer not null,
   vacation_until timestamptz,
   forced_vacation boolean not null,
-  technologies int[] not null check (array_length(technologies, 1) = 16),
+  -- Technology levels keyed by item name, e.g. {"ENERGY_TECHNOLOGY": 5}.
+  technologies jsonb not null,
   technology_queue bigint[] not null
 );
 
@@ -127,8 +128,9 @@ create table bodies (
   solar_satellites_factor int not null check (solar_satellites_factor between 0 and 10),
   last_jump_at timestamptz,
   shipyard_start_at timestamptz,
-  buildings int[] not null check (array_length(buildings, 1) = 18),
-  units int[] not null check (array_length(units, 1) = 23),
+  -- Building levels and unit counts keyed by item name, e.g. {"METAL_MINE": 5}.
+  buildings jsonb not null,
+  units jsonb not null,
   building_queue int[] not null,
   shipyard_queue int[] not null,
   unique (galaxy, system, position, kind)
@@ -178,7 +180,8 @@ create table flights (
   metal double precision not null check (metal >= 0),
   crystal double precision not null check (crystal >= 0),
   deuterium double precision not null check (deuterium >= 0),
-  units int[] not null check (array_length(units, 1) = 23),
+  -- Fleet composition keyed by item name, e.g. {"SMALL_CARGO": 12}.
+  units jsonb not null,
   main_target int
 );
 

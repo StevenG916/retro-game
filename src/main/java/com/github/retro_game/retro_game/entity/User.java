@@ -1,7 +1,7 @@
 package com.github.retro_game.retro_game.entity;
 
-import io.hypersistence.utils.hibernate.type.array.IntArrayType;
 import io.hypersistence.utils.hibernate.type.array.LongArrayType;
+import io.hypersistence.utils.hibernate.type.json.JsonBinaryType;
 import org.hibernate.annotations.Type;
 import org.springframework.data.domain.Sort;
 
@@ -85,9 +85,11 @@ public class User {
   @Column(name = "forced_vacation", nullable = false)
   private boolean forcedVacation;
 
+  // Technology levels, keyed by item name, e.g. {"ENERGY_TECHNOLOGY": 5}.
+  // A technology absent from the map counts as 0.
   @Column(name = "technologies", nullable = false)
-  @Type(IntArrayType.class)
-  private int[] technologiesArray;
+  @Type(JsonBinaryType.class)
+  private Map<String, Integer> technologies = new HashMap<>();
 
   @Column(name = "technology_queue", nullable = false)
   @Type(LongArrayType.class)
@@ -281,24 +283,20 @@ public class User {
   }
 
   public EnumMap<TechnologyKind, Integer> getTechnologies() {
-    return SerializationUtils.deserializeItems(TechnologyKind.class, technologiesArray);
+    return ItemMaps.toEnumMap(TechnologyKind.class, technologies);
   }
 
   public void setTechnologies(Map<TechnologyKind, Integer> technologies) {
-    technologiesArray = SerializationUtils.serializeItems(TechnologyKind.class, technologies);
+    this.technologies = ItemMaps.toStored(technologies);
   }
 
   public int getTechnologyLevel(TechnologyKind kind) {
-    var index = kind.ordinal();
-    var level = technologiesArray[index];
-    assert level >= 0;
-    return level;
+    return ItemMaps.get(technologies, kind);
   }
 
   public void setTechnologyLevel(TechnologyKind kind, int level) {
     assert level >= 0;
-    var index = kind.ordinal();
-    technologiesArray[index] = level;
+    technologies.put(kind.name(), level);
   }
 
   public SortedMap<Integer, TechnologyQueueEntry> getTechnologyQueue() {

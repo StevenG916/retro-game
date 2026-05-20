@@ -96,6 +96,16 @@ $(function () {
     setInterval(updateResources, 1000);
   }
 
+  // Surface unread reports + messages in the browser tab title (e.g.
+  // "(3) Overview") so the player notices activity from another tab.
+  var sidebar = $('#sidebar');
+  if (sidebar.length > 0) {
+    var unreadCount = +sidebar.attr('data-unread-count');
+    if (unreadCount > 0) {
+      document.title = '(' + unreadCount + ') ' + document.title;
+    }
+  }
+
   $('[data-set]').click(function () {
     var input = $('#' + $(this).attr('data-set-for'));
     input.val($(this).attr('data-set-value'));

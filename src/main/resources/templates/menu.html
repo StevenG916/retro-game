@@ -6,7 +6,10 @@
 </head>
 <body>
 <div class="container">
-  <nav th:fragment="menu" id="sidebar">
+  <!-- data-unread-count drives the browser-tab title badge in retrogame.js;
+       it sums the same report and message totals shown on the links below. -->
+  <nav th:fragment="menu" id="sidebar"
+       th:data-unread-count="${@reportService.getSummary(bodyId).totalReports + @messageSummaryService.get(bodyId).totalMessages}">
     <h2>
       <a href="https://github.com/retro-game/retro-game">Retro Game</a>
       <a th:href="@{/changelog(body=${bodyId})}" th:text="${'v' + version}"></a>

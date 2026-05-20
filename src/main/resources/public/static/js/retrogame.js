@@ -81,9 +81,15 @@ $(function () {
       var elapsedHours = (Date.now() - loadedAt) / 3600000;
       for (var i = 0; i < resourceNames.length; i++) {
         var name = resourceNames[i];
+        var capacity = resourceCapacity[name];
         var current = resourceBase[name] + resourceProduction[name] * elapsedHours;
-        current = Math.max(0, Math.min(current, resourceCapacity[name]));
-        $('[data-resource-value="' + name + '"]').text(prettyNumber(Math.floor(current)));
+        current = Math.max(0, Math.min(current, capacity));
+        var cell = $('[data-resource-value="' + name + '"]');
+        cell.text(prettyNumber(Math.floor(current)));
+        // Keep the capacity warning in sync as the value ticks: red once a
+        // store is full, amber from 90% so the player can react in time.
+        cell.toggleClass('no-capacity', current >= capacity);
+        cell.toggleClass('almost-full', current >= capacity * 0.9 && current < capacity);
       }
     };
     updateResources();

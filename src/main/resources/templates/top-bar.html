@@ -44,17 +44,24 @@
             </div>
           </div>
         </div>
+        <!-- Resource snapshot for live-ticking: base values, hourly production
+             and storage capacity are exposed as data attributes so retrogame.js
+             can increment the displayed stockpiles between page loads. -->
         <div id="top-bar-resources"
              th:with="r=${ctx.curBody.resources},p=${ctx.curBody.production},c=${ctx.curBody.capacity}"
              th:data-resources-metal="${r.metal}" th:data-resources-crystal="${r.crystal}"
-             th:data-resources-deuterium="${r.deuterium}">
+             th:data-resources-deuterium="${r.deuterium}"
+             th:data-production-metal="${p.metalProduction}" th:data-production-crystal="${p.crystalProduction}"
+             th:data-production-deuterium="${p.deuteriumProduction}"
+             th:data-capacity-metal="${c.metal}" th:data-capacity-crystal="${c.crystal}"
+             th:data-capacity-deuterium="${c.deuterium}">
           <div data-tooltip data-tooltip-html
                th:data-tooltip-title="
                  '<p>' + #{production} + ': <strong>' + ${#numbers.formatInteger(p.metalProduction, 1, 'DEFAULT')} + '</strong></p>' +
                  '<p>' + #{capacity} + ': <strong>' + ${#numbers.formatInteger(c.metal, 1, 'DEFAULT')} + '</strong></p>'">
             <img th:src="@{/static/skins/{skin}/resources/METAL.webp(skin=${skin})}">
             <p th:text="#{metal}">Metal</p>
-            <p th:class="${r.metal >= c.metal ? 'no-capacity' : ''}"
+            <p data-resource-value="metal" th:class="${r.metal >= c.metal ? 'no-capacity' : ''}"
                th:text="${#numbers.formatInteger(r.metal, 1, 'DEFAULT')}"></p>
           </div>
           <div data-tooltip data-tooltip-html
@@ -63,7 +70,7 @@
                  '<p>' + #{capacity} + ': <strong>' + ${#numbers.formatInteger(c.crystal, 1, 'DEFAULT')} + '</strong></p>'">
             <img th:src="@{/static/skins/{skin}/resources/CRYSTAL.webp(skin=${skin})}">
             <p th:text="#{crystal}">Crystal</p>
-            <p th:class="${r.crystal >= c.crystal ? 'no-capacity' : ''}"
+            <p data-resource-value="crystal" th:class="${r.crystal >= c.crystal ? 'no-capacity' : ''}"
                th:text="${#numbers.formatInteger(r.crystal, 1, 'DEFAULT')}"></p>
           </div>
           <div data-tooltip data-tooltip-html
@@ -72,7 +79,7 @@
                  '<p>' + #{capacity} + ': <strong>' + ${#numbers.formatInteger(c.deuterium, 1, 'DEFAULT')} + '</strong></p>'">
             <img th:src="@{/static/skins/{skin}/resources/DEUTERIUM.webp(skin=${skin})}">
             <p th:text="#{deuterium}">Deuterium</p>
-            <p th:class="${r.deuterium >= c.deuterium ? 'no-capacity' : ''}"
+            <p data-resource-value="deuterium" th:class="${r.deuterium >= c.deuterium ? 'no-capacity' : ''}"
                th:text="${#numbers.formatInteger(r.deuterium, 1, 'DEFAULT')}"></p>
           </div>
           <div data-tooltip data-tooltip-html

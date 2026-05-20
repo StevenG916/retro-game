@@ -1,9 +1,12 @@
 package com.github.retro_game.retro_game.service;
 
+import com.github.retro_game.retro_game.entity.BuildingKind;
 import com.github.retro_game.retro_game.entity.ItemDefinition;
 import com.github.retro_game.retro_game.entity.ItemRequirement;
 import com.github.retro_game.retro_game.entity.ItemType;
 import com.github.retro_game.retro_game.entity.Resources;
+import com.github.retro_game.retro_game.entity.TechnologyKind;
+import com.github.retro_game.retro_game.entity.UnitKind;
 import com.github.retro_game.retro_game.entity.UnitType;
 import com.github.retro_game.retro_game.model.Item;
 import com.github.retro_game.retro_game.model.building.BuildingItem;
@@ -21,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -35,6 +39,10 @@ import java.util.Map;
  * {@code model/} classes. Seeding from those classes — rather than a hand-written
  * SQL script — keeps the catalog automatically in step with the current game
  * values until a later phase makes the catalog authoritative.
+ *
+ * <p>On every start it also verifies the catalog defines every built-in item,
+ * failing fast otherwise: the game still resolves those items by their enum
+ * name, so a missing row would otherwise surface as a random error mid-game.
  */
 @Component
 public class CatalogSeeder {
@@ -57,8 +65,15 @@ public class CatalogSeeder {
   public void seedCatalog() {
     if (itemDefinitionRepository.count() > 0) {
       logger.info("Content catalog already populated; skipping seed.");
-      return;
+    } else {
+      seedFromHardcodedItems();
     }
+    // Whether freshly seeded or pre-existing, the catalog must define every
+    // built-in item; the game still resolves those by their enum name.
+    verifyCatalogComplete();
+  }
+
+  private void seedFromHardcodedItems() {
     logger.info("Seeding the content catalog from the hardcoded item definitions...");
 
     // Pass 1: every item definition. Indexed by kind so pass 2 can resolve requirements.
@@ -95,6 +110,46 @@ public class CatalogSeeder {
     itemRequirementRepository.saveAll(requirements);
 
     logger.info("Seeded {} item definitions and {} requirements.", definitions.size(), requirements.size());
+  }
+
+  /**
+   * Asserts the catalog has a definition for every built-in item. The game still
+   * resolves buildings, technologies and units by their enum name, so a missing
+   * row is a fatal misconfiguration — better caught here, at start-up, than as a
+   * random failure once a player reaches that item.
+   */
+  private void verifyCatalogComplete() {
+    var existingKinds = new HashSet<String>();
+    for (var definition : itemDefinitionRepository.findAll()) {
+      existingKinds.add(definition.getKind());
+    }
+
+    var missing = new ArrayList<String>();
+    for (var kind : BuildingKind.values()) {
+      if (!existingKinds.contains(kind.name())) {
+        missing.add(kind.name());
+      }
+    }
+    for (var kind : TechnologyKind.values()) {
+      if (!existingKinds.contains(kind.name())) {
+        missing.add(kind.name());
+      }
+    }
+    for (var kind : UnitKind.values()) {
+      if (!existingKinds.contains(kind.name())) {
+        missing.add(kind.name());
+      }
+    }
+
+    if (!missing.isEmpty()) {
+      throw new IllegalStateException(
+          "The content catalog is missing definitions for: " + String.join(", ", missing)
+              + ". Every built-in BuildingKind, TechnologyKind and UnitKind must have a matching "
+              + "item_definitions row.");
+    }
+    var builtInCount = BuildingKind.values().length + TechnologyKind.values().length
+        + UnitKind.values().length;
+    logger.info("Content catalog verified: all {} built-in items are present.", builtInCount);
   }
 
   private ItemDefinition newDefinition(ItemType type, String kind) {

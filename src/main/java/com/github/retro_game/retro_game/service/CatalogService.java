@@ -1,10 +1,13 @@
 package com.github.retro_game.retro_game.service;
 
 import com.github.retro_game.retro_game.entity.ItemDefinition;
+import com.github.retro_game.retro_game.entity.ItemType;
 import com.github.retro_game.retro_game.repository.ItemDefinitionRepository;
 import org.springframework.stereotype.Component;
 
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -47,15 +50,37 @@ public class CatalogService {
 
   /** Returns the catalog definition for the given item kind, e.g. {@code "METAL_MINE"}. */
   public ItemDefinition getDefinition(String kind) {
+    var definition = definitions().get(kind);
+    if (definition == null) {
+      throw new IllegalStateException("The content catalog has no item with kind " + kind);
+    }
+    return definition;
+  }
+
+  /** Returns whether the catalog contains an item with the given kind. */
+  public boolean hasDefinition(String kind) {
+    return definitions().containsKey(kind);
+  }
+
+  /** Returns every catalog item, ordered by id — i.e. the order they were seeded in. */
+  public List<ItemDefinition> getAll() {
+    return definitions().values().stream()
+        .sorted(Comparator.comparingLong(ItemDefinition::getId))
+        .toList();
+  }
+
+  /** Returns every catalog item of the given type, ordered by id. */
+  public List<ItemDefinition> getAllByType(ItemType type) {
+    return getAll().stream().filter(definition -> definition.getType() == type).toList();
+  }
+
+  /** Returns the catalog map, loading it from the database on first use. */
+  private Map<String, ItemDefinition> definitions() {
     var map = definitionsByKind;
     if (map.isEmpty()) {
       reload();
       map = definitionsByKind;
     }
-    var definition = map.get(kind);
-    if (definition == null) {
-      throw new IllegalStateException("The content catalog has no item with kind " + kind);
-    }
-    return definition;
+    return map;
   }
 }

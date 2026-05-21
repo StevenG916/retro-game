@@ -4,6 +4,7 @@ import com.github.retro_game.retro_game.entity.TechnologyKind;
 import com.github.retro_game.retro_game.entity.UnitKind;
 import com.github.retro_game.retro_game.entity.User;
 import com.github.retro_game.retro_game.model.unit.UnitItem;
+import com.github.retro_game.retro_game.service.CatalogService;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -35,21 +36,23 @@ class UnitServiceImpl implements UnitService {
     return 0;
   }
 
+  // The base weapons, shield and armor come from the editable content catalog;
+  // the weapons/shielding/armor technology bonus is then applied on top.
   @Override
   public double getWeapons(UnitKind kind, User user) {
-    return UnitItem.getAll().get(kind).getBaseWeapons() *
+    return CatalogService.getInstance().getDefinition(kind.name()).getWeapons() *
         (1.0 + 0.1 * user.getTechnologyLevel(TechnologyKind.WEAPONS_TECHNOLOGY));
   }
 
   @Override
   public double getShield(UnitKind kind, User user) {
-    return UnitItem.getAll().get(kind).getBaseShield() *
+    return CatalogService.getInstance().getDefinition(kind.name()).getShield() *
         (1.0 + 0.1 * user.getTechnologyLevel(TechnologyKind.SHIELDING_TECHNOLOGY));
   }
 
   @Override
   public double getArmor(UnitKind kind, User user) {
-    return UnitItem.getAll().get(kind).getBaseArmor() *
+    return CatalogService.getInstance().getDefinition(kind.name()).getArmor() *
         (1.0 + 0.1 * user.getTechnologyLevel(TechnologyKind.ARMOR_TECHNOLOGY));
   }
 }

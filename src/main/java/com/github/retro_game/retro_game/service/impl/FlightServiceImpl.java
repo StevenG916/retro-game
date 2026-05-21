@@ -10,6 +10,7 @@ import com.github.retro_game.retro_game.repository.*;
 import com.github.retro_game.retro_game.security.CustomUser;
 import com.github.retro_game.retro_game.service.ActivityService;
 import com.github.retro_game.retro_game.service.BodyCreationService;
+import com.github.retro_game.retro_game.service.CatalogService;
 import com.github.retro_game.retro_game.service.exception.*;
 import com.github.retro_game.retro_game.service.impl.missionhandler.AttackMissionHandler;
 import org.slf4j.Logger;
@@ -1282,8 +1283,11 @@ class FlightServiceImpl implements FlightServiceInternal {
         flight.getId(), flight.getStartUser().getId(), flight.getStartBody().getId(), flight.getTargetUser().getId(),
         body.getId(), flight.getArrivalAt(), numIpm, mainTarget);
 
+    // Base weapons and armor are read from the editable content catalog; the
+    // weapons technology and armor-technology factors are then applied on top.
+    var catalog = CatalogService.getInstance();
     final double defFactor = 0.1 + 0.01 * flight.getTargetUser().getTechnologyLevel(TechnologyKind.ARMOR_TECHNOLOGY);
-    double power = numIpm * defense.get(UnitKind.INTERPLANETARY_MISSILE).getBaseWeapons() *
+    double power = numIpm * catalog.getDefinition(UnitKind.INTERPLANETARY_MISSILE.name()).getWeapons() *
         (1.0 + 0.1 * flight.getStartUser().getTechnologyLevel(TechnologyKind.WEAPONS_TECHNOLOGY));
     int totalDestroyed = 0;
 
@@ -1292,7 +1296,7 @@ class FlightServiceImpl implements FlightServiceInternal {
 
       var count = units.get(kind);
 
-      double armor = defFactor * defense.get(kind).getBaseArmor();
+      double armor = defFactor * catalog.getDefinition(kind.name()).getArmor();
       int numDestroyed = Math.min(count, (int) (power / armor));
       power -= armor * numDestroyed;
 

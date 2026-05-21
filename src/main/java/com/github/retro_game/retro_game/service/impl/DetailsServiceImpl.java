@@ -7,6 +7,7 @@ import com.github.retro_game.retro_game.model.ItemTimeUtils;
 import com.github.retro_game.retro_game.model.unit.UnitItem;
 import com.github.retro_game.retro_game.repository.UserRepository;
 import com.github.retro_game.retro_game.security.CustomUser;
+import com.github.retro_game.retro_game.service.CatalogService;
 import com.github.retro_game.retro_game.service.DetailsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -152,8 +153,10 @@ class DetailsServiceImpl implements DetailsService {
               throw new IllegalStateException();
             }, () -> new EnumMap<>(UnitKindDto.class)));
 
+    // Base weapons, shield and armor are read from the editable content catalog.
+    var definition = CatalogService.getInstance().getDefinition(k.name());
     return new UnitDetailsDto(weapons, shield, armor, item.getCapacity(), item.getConsumption(user),
-        unitService.getSpeed(k, user), item.getBaseWeapons(), item.getBaseShield(), item.getBaseArmor(),
+        unitService.getSpeed(k, user), definition.getWeapons(), definition.getShield(), definition.getArmor(),
         item.getBaseSpeed(user), rapidFireAgainst, rapidFireFrom);
   }
 }

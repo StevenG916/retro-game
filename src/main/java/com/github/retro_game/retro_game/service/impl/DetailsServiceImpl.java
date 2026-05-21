@@ -57,10 +57,15 @@ class DetailsServiceImpl implements DetailsService {
   }
 
   @Override
-  public BuildingDetailsDto getBuildingDetails(long bodyId, BuildingKindDto kind) {
+  public BuildingDetailsDto getBuildingDetails(long bodyId, String kind) {
     Body body = bodyServiceInternal.getUpdated(bodyId);
 
-    BuildingKind k = Converter.convert(kind);
+    BuildingKind k;
+    try {
+      k = BuildingKind.valueOf(kind);
+    } catch (IllegalArgumentException e) {
+      throw new IllegalArgumentException("Unknown building kind: " + kind, e);
+    }
 
     Collection<BuildingQueueEntry> queue = body.getBuildingQueue().values();
 

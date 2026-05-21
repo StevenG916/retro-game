@@ -3,7 +3,7 @@ package com.github.retro_game.retro_game.service;
 import com.github.retro_game.retro_game.dto.*;
 
 public interface DetailsService {
-  BuildingDetailsDto getBuildingDetails(long bodyId, BuildingKindDto kind);
+  BuildingDetailsDto getBuildingDetails(long bodyId, String kind);
 
   TechnologyDetailsDto getTechnologyDetails(long bodyId, TechnologyKindDto kind);
 

@@ -199,7 +199,7 @@ public class BuildingsServiceImpl implements BuildingsServiceInternal {
         }
       }
 
-      ret.add(new BuildingQueueEntryDto(Converter.convert(curKind), cur.getKey(), curLevelFrom, curLevelTo,
+      ret.add(new BuildingQueueEntryDto(curKind.name(), cur.getKey(), curLevelFrom, curLevelTo,
           Converter.convert(curCost), curEnergy, Date.from(Instant.ofEpochSecond(finishAt)), downMovable, upMovable,
           cancelable));
 
@@ -219,9 +219,17 @@ public class BuildingsServiceImpl implements BuildingsServiceInternal {
   private List<BuildingDto> getBuildings(State state, Body body, ProductionDto production, int queueSize) {
     var buildings = new ArrayList<BuildingDto>(BuildingKindDto.values().length);
 
-    for (var entry : BuildingItem.getAll().entrySet()) {
-      var kind = entry.getKey();
-      var item = entry.getValue();
+    // Iterate the content catalog rather than the BuildingKind enum, so admin-panel
+    // edits are reflected. A catalog item whose kind isn't a built-in BuildingKind
+    // (a future admin-created building) is not supported yet, so it is skipped.
+    for (var ci : CatalogItem.allOfType(ItemType.BUILDING)) {
+      BuildingKind kind;
+      try {
+        kind = BuildingKind.valueOf(ci.getKind());
+      } catch (IllegalArgumentException e) {
+        continue;
+      }
+      var item = Item.get(kind);
 
       var currentLevel = body.getBuildingLevel(kind);
       var futureLevel = state.buildings.get(kind);
@@ -256,7 +264,7 @@ public class BuildingsServiceImpl implements BuildingsServiceInternal {
           (queueSize > 0 || (hasEnoughResources && hasEnoughEnergy));
 
       buildings.add(
-          new BuildingDto(Converter.convert(kind), currentLevel, futureLevel, Converter.convert(cost), requiredEnergy,
+          new BuildingDto(kind.name(), currentLevel, futureLevel, Converter.convert(cost), requiredEnergy,
               constructionTime, Converter.convert(missingResources), neededSmallCargoes, neededLargeCargoes,
               accumulationTime, canConstructNow));
     }
@@ -267,7 +275,17 @@ public class BuildingsServiceImpl implements BuildingsServiceInternal {
   @Override
   public Map<BuildingKind, Tuple2<Integer, Integer>> getCurrentAndFutureLevels(Body body) {
     State state = new State(body, body.getBuildingQueue());
-    return Arrays.stream(BuildingKind.values())
+    // Iterate the content catalog rather than the BuildingKind enum; skip any item
+    // whose kind isn't a built-in BuildingKind (a future admin-created building).
+    return CatalogItem.allOfType(ItemType.BUILDING).stream()
+        .map(ci -> {
+          try {
+            return BuildingKind.valueOf(ci.getKind());
+          } catch (IllegalArgumentException e) {
+            return null;
+          }
+        })
+        .filter(Objects::nonNull)
         .filter(kind -> body.getBuildingLevel(kind) != 0 || state.buildings.getOrDefault(kind, 0) != 0)
         .collect(Collectors.toMap(
             Function.identity(),
@@ -298,8 +316,13 @@ public class BuildingsServiceImpl implements BuildingsServiceInternal {
 
   @Override
   @Transactional(isolation = Isolation.REPEATABLE_READ)
-  public void construct(long bodyId, BuildingKindDto kind) {
-    var k = Converter.convert(kind);
+  public void construct(long bodyId, String kind) {
+    BuildingKind k;
+    try {
+      k = BuildingKind.valueOf(kind);
+    } catch (IllegalArgumentException e) {
+      throw new IllegalArgumentException("Unknown building kind: " + kind, e);
+    }
     var body = bodyServiceInternal.getUpdated(bodyId);
     var queue = body.getBuildingQueue();
 
@@ -364,8 +387,13 @@ public class BuildingsServiceImpl implements BuildingsServiceInternal {
 
   @Override
   @Transactional(isolation = Isolation.REPEATABLE_READ)
-  public void destroy(long bodyId, BuildingKindDto kind) {
-    var k = Converter.convert(kind);
+  public void destroy(long bodyId, String kind) {
+    BuildingKind k;
+    try {
+      k = BuildingKind.valueOf(kind);
+    } catch (IllegalArgumentException e) {
+      throw new IllegalArgumentException("Unknown building kind: " + kind, e);
+    }
     var body = bodyServiceInternal.getUpdated(bodyId);
     var queue = body.getBuildingQueue();
 

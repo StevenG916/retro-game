@@ -1,7 +1,6 @@
 package com.github.retro_game.retro_game.controller;
 
 import com.github.retro_game.retro_game.controller.activity.Activity;
-import com.github.retro_game.retro_game.dto.BuildingKindDto;
 import com.github.retro_game.retro_game.dto.TechnologyKindDto;
 import com.github.retro_game.retro_game.dto.UnitKindDto;
 import com.github.retro_game.retro_game.service.BodyService;
@@ -28,7 +27,7 @@ public class DetailsController {
   @GetMapping("/details/building")
   @PreAuthorize("hasPermission(#bodyId, 'ACCESS')")
   @Activity(bodies = "#bodyId")
-  public String buildingDetails(@RequestParam(name = "body") long bodyId, @RequestParam BuildingKindDto kind,
+  public String buildingDetails(@RequestParam(name = "body") long bodyId, @RequestParam String kind,
                                 Model model) {
     var ctx = userService.getCurrentUserContext(bodyId);
     var energyTechnologyLevel = ctx.technologies().getOrDefault(TechnologyKindDto.ENERGY_TECHNOLOGY, 0);

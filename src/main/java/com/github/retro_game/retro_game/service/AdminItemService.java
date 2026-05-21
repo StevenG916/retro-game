@@ -52,6 +52,54 @@ public class AdminItemService {
   }
 
   /**
+   * Adds a build/research prerequisite to an item: the catalog item with kind
+   * {@code requiredKind} must reach {@code requiredLevel}.
+   *
+   * @throws IllegalArgumentException if either item is unknown, the required
+   *                                  level is below 1, or the item already has
+   *                                  a requirement on that required item
+   */
+  @Transactional
+  public void addRequirement(long itemId, String requiredKind, int requiredLevel) {
+    var item = itemDefinitionRepository.findById(itemId)
+        .orElseThrow(() -> new IllegalArgumentException("No catalog item with id " + itemId));
+    var requiredItem = itemDefinitionRepository.findByKind(requiredKind)
+        .orElseThrow(() -> new IllegalArgumentException("No catalog item with kind '" + requiredKind + "'"));
+    if (requiredLevel < 1) {
+      throw new IllegalArgumentException("The required level must be at least 1");
+    }
+    var alreadyRequired = itemRequirementRepository.findByItem(item).stream()
+        .anyMatch(existing -> existing.getRequiredItem().getId() == requiredItem.getId());
+    if (alreadyRequired) {
+      throw new IllegalArgumentException(
+          "The item already has a requirement on '" + requiredKind + "'");
+    }
+
+    var requirement = new ItemRequirement();
+    requirement.setItem(item);
+    requirement.setRequiredItem(requiredItem);
+    requirement.setRequiredLevel(requiredLevel);
+    itemRequirementRepository.save(requirement);
+    // Refresh the in-memory catalog so the requirement takes effect on the running game.
+    catalogService.reload();
+  }
+
+  /**
+   * Removes a build/research prerequisite by its id.
+   *
+   * @throws IllegalArgumentException if there is no such requirement
+   */
+  @Transactional
+  public void removeRequirement(long requirementId) {
+    if (!itemRequirementRepository.existsById(requirementId)) {
+      throw new IllegalArgumentException("No item requirement with id " + requirementId);
+    }
+    itemRequirementRepository.deleteById(requirementId);
+    // Refresh the in-memory catalog so the removal takes effect on the running game.
+    catalogService.reload();
+  }
+
+  /**
    * Applies the edited values to an existing item. Only the fields relevant to
    * the item's {@link com.github.retro_game.retro_game.entity.ItemType} are
    * touched, so the form's unused fields cannot clobber type-specific data.

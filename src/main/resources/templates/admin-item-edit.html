@@ -123,13 +123,39 @@
       </tr>
     </table>
   </form>
-  <table th:unless="${#lists.isEmpty(requirements)}">
+  <!-- Build/research prerequisites, editable: each row can be removed, and the
+       final row adds a new one. Stored in the catalog's item_requirements table. -->
+  <table>
     <tr>
-      <th colspan="2" th:text="#{requirements}">Requirements</th>
+      <th colspan="3" th:text="#{requirements}">Requirements</th>
+    </tr>
+    <tr th:if="${#lists.isEmpty(requirements)}">
+      <td colspan="3" th:text="#{noRequirements}">This item has no requirements.</td>
     </tr>
     <tr th:each="requirement : ${requirements}">
       <td th:text="${requirement.requiredItem.name}">Robotics Factory</td>
       <td th:text="${requirement.requiredLevel}">2</td>
+      <td>
+        <form th:action="@{/admin/items/requirement/remove}" method="post">
+          <input type="hidden" name="itemId" th:value="${item.id}">
+          <input type="hidden" name="requirementId" th:value="${requirement.id}">
+          <button th:text="#{removeRequirement}">Remove</button>
+        </form>
+      </td>
+    </tr>
+    <tr>
+      <td colspan="3">
+        <form th:action="@{/admin/items/requirement/add}" method="post">
+          <input type="hidden" name="itemId" th:value="${item.id}">
+          <label for="requiredKind" th:text="#{requiredItem}">Required item</label>
+          <select id="requiredKind" name="requiredKind" required>
+            <option th:each="candidate : ${allItems}" th:value="${candidate.kind}"
+                    th:text="${candidate.name}">Robotics Factory</option>
+          </select>
+          <input type="number" name="requiredLevel" min="1" step="1" value="1" required>
+          <button th:text="#{addRequirement}">Add</button>
+        </form>
+      </td>
     </tr>
   </table>
 </div>

@@ -14,6 +14,7 @@ import com.github.retro_game.retro_game.model.unit.UnitItem;
 import com.github.retro_game.retro_game.service.CatalogService;
 import org.springframework.lang.Nullable;
 
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 
@@ -25,9 +26,9 @@ import java.util.Map;
  *
  * <p>It joins the two halves of an item's definition:
  * <ul>
- *   <li><b>Data</b> — cost, cost factor, required energy, cargo capacity and
- *       combat stats — read from the content catalog ({@link CatalogService}),
- *       so it reflects admin-panel edits.</li>
+ *   <li><b>Data</b> — cost, cost factor, required energy, cargo capacity,
+ *       combat stats and build requirements — read from the content catalog
+ *       ({@link CatalogService}), so it reflects admin-panel edits.</li>
  *   <li><b>Behavior</b> — special build requirements, propulsion, fuel
  *       consumption and rapid fire — which is still expressed in code, with no
  *       catalog representation. For a built-in item this is delegated to its
@@ -132,17 +133,48 @@ public class CatalogItem {
     return definition.getArmor();
   }
 
-  // --- Behavior, still expressed in code (delegated to the legacy model) ---
-
-  /** The buildings, with their levels, required before this item can be built. */
+  /**
+   * The buildings, with their levels, required before this item can be built,
+   * read from the content catalog. A required kind that is not a built-in
+   * {@link BuildingKind} (a future admin-created building) is skipped.
+   */
   public Map<BuildingKind, Integer> getBuildingsRequirements() {
-    return legacy != null ? legacy.getBuildingsRequirements() : Map.of();
+    var requirements = new EnumMap<BuildingKind, Integer>(BuildingKind.class);
+    for (var req : CatalogService.getInstance().getRequirements(getKind())) {
+      if (req.requiredType() != ItemType.BUILDING) {
+        continue;
+      }
+      try {
+        requirements.put(BuildingKind.valueOf(req.requiredKind()), req.requiredLevel());
+      } catch (IllegalArgumentException e) {
+        // Not a built-in building kind; skip it.
+      }
+    }
+    return requirements;
   }
 
-  /** The technologies, with their levels, required before this item can be built. */
+  /**
+   * The technologies, with their levels, required before this item can be
+   * built, read from the content catalog. A required kind that is not a
+   * built-in {@link TechnologyKind} (a future admin-created technology) is
+   * skipped.
+   */
   public Map<TechnologyKind, Integer> getTechnologiesRequirements() {
-    return legacy != null ? legacy.getTechnologiesRequirements() : Map.of();
+    var requirements = new EnumMap<TechnologyKind, Integer>(TechnologyKind.class);
+    for (var req : CatalogService.getInstance().getRequirements(getKind())) {
+      if (req.requiredType() != ItemType.TECHNOLOGY) {
+        continue;
+      }
+      try {
+        requirements.put(TechnologyKind.valueOf(req.requiredKind()), req.requiredLevel());
+      } catch (IllegalArgumentException e) {
+        // Not a built-in technology kind; skip it.
+      }
+    }
+    return requirements;
   }
+
+  // --- Behavior, still expressed in code (delegated to the legacy model) ---
 
   /** Whether a building may be constructed on the given body (e.g. moon-only buildings). */
   public boolean meetsSpecialRequirements(Body body) {

@@ -194,7 +194,7 @@ public class BuildingsServiceImpl implements BuildingsServiceInternal {
         nextCost.sub(curCost);
 
         if (!body.getResources().greaterOrEqual(nextCost) || nextEnergy > production.totalEnergy() ||
-            !ItemRequirementsUtils.meetsTechnologiesRequirements(Item.get(nextKind), body.getUser())) {
+            !ItemRequirementsUtils.meetsTechnologiesRequirements(nextKind.name(), body.getUser())) {
           downMovable = cancelable = false;
         }
       }
@@ -235,8 +235,8 @@ public class BuildingsServiceImpl implements BuildingsServiceInternal {
       var futureLevel = state.buildings.get(kind);
 
       var meetsRequirements = meetsSpecialRequirements(body, item, kind) &&
-          ItemRequirementsUtils.meetsBuildingsRequirements(item, state.buildings) &&
-          (queueSize > 0 || ItemRequirementsUtils.meetsTechnologiesRequirements(item, body.getUser()));
+          ItemRequirementsUtils.meetsBuildingsRequirements(kind.name(), state.buildings) &&
+          (queueSize > 0 || ItemRequirementsUtils.meetsTechnologiesRequirements(kind.name(), body.getUser()));
 
       // Show the building even if it doesn't meet the requirements.
       var show = futureLevel > 0 || meetsRequirements;
@@ -339,8 +339,8 @@ public class BuildingsServiceImpl implements BuildingsServiceInternal {
 
     var item = Item.get(k);
     if (!meetsSpecialRequirements(body, item, k) ||
-        !ItemRequirementsUtils.meetsBuildingsRequirements(item, state.buildings) ||
-        (queue.isEmpty() && !ItemRequirementsUtils.meetsTechnologiesRequirements(item, body.getUser()))) {
+        !ItemRequirementsUtils.meetsBuildingsRequirements(k.name(), state.buildings) ||
+        (queue.isEmpty() && !ItemRequirementsUtils.meetsTechnologiesRequirements(k.name(), body.getUser()))) {
       logger.info("Constructing building failed, requirements not met: bodyId={} kind={}", bodyId, k);
       throw new RequirementsNotMetException();
     }
@@ -528,8 +528,7 @@ public class BuildingsServiceImpl implements BuildingsServiceInternal {
         }
       }
 
-      var secondItem = Item.get(secondKind);
-      if (!ItemRequirementsUtils.meetsTechnologiesRequirements(secondItem, body.getUser())) {
+      if (!ItemRequirementsUtils.meetsTechnologiesRequirements(secondKind.name(), body.getUser())) {
         logger.info("Moving down entry in building queue failed, requirements not met: bodyId={} sequenceNumber={}",
             bodyId, sequenceNumber);
         throw new RequirementsNotMetException();
@@ -672,8 +671,7 @@ public class BuildingsServiceImpl implements BuildingsServiceInternal {
           }
         }
 
-        var item = Item.get(kind);
-        if (!ItemRequirementsUtils.meetsTechnologiesRequirements(item, body.getUser())) {
+        if (!ItemRequirementsUtils.meetsTechnologiesRequirements(kind.name(), body.getUser())) {
           logger.info("Cancelling entry in building queue failed, requirements not met: bodyId={} sequenceNumber={}",
               bodyId, sequenceNumber);
           throw new RequirementsNotMetException();
@@ -781,8 +779,7 @@ public class BuildingsServiceImpl implements BuildingsServiceInternal {
         continue;
       }
 
-      var item = Item.get(entry.kind());
-      if (!ItemRequirementsUtils.meetsRequirements(item, body)) {
+      if (!ItemRequirementsUtils.meetsRequirements(entry.kind().name(), body)) {
         logger.info("Handling building queue, removing entry, requirements not met: bodyId={} kind={}" +
                 " sequenceNumber={}",
             bodyId, entry.kind(), seq);

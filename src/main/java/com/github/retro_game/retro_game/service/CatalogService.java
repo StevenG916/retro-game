@@ -3,8 +3,10 @@ package com.github.retro_game.retro_game.service;
 import com.github.retro_game.retro_game.entity.ItemDefinition;
 import com.github.retro_game.retro_game.entity.ItemType;
 import com.github.retro_game.retro_game.repository.ItemDefinitionRepository;
+import com.github.retro_game.retro_game.repository.ItemRequirementRepository;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -27,11 +29,31 @@ public class CatalogService {
   private static volatile CatalogService instance;
 
   private final ItemDefinitionRepository itemDefinitionRepository;
+  private final ItemRequirementRepository itemRequirementRepository;
   private volatile Map<String, ItemDefinition> definitionsByKind = Map.of();
+  private volatile Map<String, List<Requirement>> requirementsByKind = Map.of();
 
-  public CatalogService(ItemDefinitionRepository itemDefinitionRepository) {
+  public CatalogService(ItemDefinitionRepository itemDefinitionRepository,
+                        ItemRequirementRepository itemRequirementRepository) {
     this.itemDefinitionRepository = itemDefinitionRepository;
+    this.itemRequirementRepository = itemRequirementRepository;
     instance = this;
+  }
+
+  /**
+   * One prerequisite of a catalog item, as plain immutable data — the building
+   * or technology {@code requiredKind} must reach {@code requiredLevel} before
+   * the owning item becomes available.
+   *
+   * <p>Unlike the {@link com.github.retro_game.retro_game.entity.ItemRequirement}
+   * entity it is copied from, this carries no lazy JPA associations, so it is
+   * safe to read outside a transaction.
+   *
+   * @param requiredKind  the kind of the required item, e.g. {@code "ROBOTICS_FACTORY"}
+   * @param requiredType  whether the required item is a building or a technology
+   * @param requiredLevel the level the required item must reach
+   */
+  public record Requirement(String requiredKind, ItemType requiredType, int requiredLevel) {
   }
 
   /** Returns the singleton instance, for use by static utility code such as ItemCostUtils. */
@@ -46,6 +68,20 @@ public class CatalogService {
       map.put(definition.getKind(), definition);
     }
     definitionsByKind = Map.copyOf(map);
+
+    // Build requirements as plain immutable data keyed by the owning item's kind.
+    // The fetch-joined query resolves both @ManyToOne associations up front, so
+    // this is safe even though reload() is not always called inside a transaction.
+    var requirementsMap = new HashMap<String, List<Requirement>>();
+    for (var requirement : itemRequirementRepository.findAllWithItems()) {
+      var requiredItem = requirement.getRequiredItem();
+      requirementsMap
+          .computeIfAbsent(requirement.getItem().getKind(), k -> new ArrayList<>())
+          .add(new Requirement(requiredItem.getKind(), requiredItem.getType(), requirement.getRequiredLevel()));
+    }
+    var immutable = new HashMap<String, List<Requirement>>();
+    requirementsMap.forEach((kind, list) -> immutable.put(kind, List.copyOf(list)));
+    requirementsByKind = Map.copyOf(immutable);
   }
 
   /** Returns the catalog definition for the given item kind, e.g. {@code "METAL_MINE"}. */
@@ -72,6 +108,20 @@ public class CatalogService {
   /** Returns every catalog item of the given type, ordered by id. */
   public List<ItemDefinition> getAllByType(ItemType type) {
     return getAll().stream().filter(definition -> definition.getType() == type).toList();
+  }
+
+  /**
+   * Returns the prerequisites of the item with the given kind — the buildings
+   * and technologies that must reach a level before it can be built or
+   * researched — or an empty list if it has none.
+   *
+   * <p>Because the catalog is reloaded after every admin edit, this reflects
+   * requirement changes made through the admin panel on the running game.
+   */
+  public List<Requirement> getRequirements(String kind) {
+    // Touch definitions() so a first-use reload (which also loads requirements) has run.
+    definitions();
+    return requirementsByKind.getOrDefault(kind, List.of());
   }
 
   /** Returns the catalog map, loading it from the database on first use. */

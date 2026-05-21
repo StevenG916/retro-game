@@ -52,6 +52,8 @@ public class AdminItemController {
     model.addAttribute("item", item);
     model.addAttribute("itemForm", AdminItemForm.fromItem(item));
     model.addAttribute("requirements", adminItemService.getRequirements(item));
+    // Every catalog item, for the add-requirement drop-down.
+    model.addAttribute("allItems", adminItemService.getAllItems());
     return "admin-item-edit";
   }
 
@@ -63,10 +65,24 @@ public class AdminItemController {
       ItemDefinition item = adminItemService.getItem(itemForm.getId());
       model.addAttribute("item", item);
       model.addAttribute("requirements", adminItemService.getRequirements(item));
+      model.addAttribute("allItems", adminItemService.getAllItems());
       return "admin-item-edit";
     }
     adminItemService.updateItem(itemForm);
     return "redirect:/admin/items?saved";
+  }
+
+  @PostMapping("/admin/items/requirement/add")
+  public String addRequirement(@RequestParam long itemId, @RequestParam String requiredKind,
+                               @RequestParam int requiredLevel) {
+    adminItemService.addRequirement(itemId, requiredKind, requiredLevel);
+    return "redirect:/admin/items/edit?id=" + itemId;
+  }
+
+  @PostMapping("/admin/items/requirement/remove")
+  public String removeRequirement(@RequestParam long itemId, @RequestParam long requirementId) {
+    adminItemService.removeRequirement(requirementId);
+    return "redirect:/admin/items/edit?id=" + itemId;
   }
 
   @GetMapping("/admin/items/create")

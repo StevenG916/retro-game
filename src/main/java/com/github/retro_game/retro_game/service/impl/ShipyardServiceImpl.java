@@ -2,7 +2,6 @@ package com.github.retro_game.retro_game.service.impl;
 
 import com.github.retro_game.retro_game.dto.*;
 import com.github.retro_game.retro_game.entity.*;
-import com.github.retro_game.retro_game.model.Item;
 import com.github.retro_game.retro_game.model.ItemCostUtils;
 import com.github.retro_game.retro_game.model.ItemRequirementsUtils;
 import com.github.retro_game.retro_game.model.ItemTimeUtils;
@@ -107,12 +106,11 @@ public class ShipyardServiceImpl implements ShipyardServiceInternal {
     var units = new ArrayList<UnitDto>(items.size());
     for (var entry : items.entrySet()) {
       var kind = entry.getKey();
-      var item = entry.getValue();
 
       var currentCount = body.getUnitsCount(kind);
       var futureCount = currentCount + state.getOrDefault(kind, 0);
 
-      var meetsRequirements = ItemRequirementsUtils.meetsRequirements(item, body);
+      var meetsRequirements = ItemRequirementsUtils.meetsRequirements(kind.name(), body);
 
       // Don't show the unit if there is no unit on the body and requirements are not met.
       if (futureCount == 0 && !meetsRequirements) {
@@ -211,8 +209,7 @@ public class ShipyardServiceImpl implements ShipyardServiceInternal {
 
     Body body = bodyServiceInternal.getUpdated(bodyId);
 
-    var item = Item.get(k);
-    if (!ItemRequirementsUtils.meetsRequirements(item, body)) {
+    if (!ItemRequirementsUtils.meetsRequirements(k.name(), body)) {
       logger.info("Constructing unit failed, requirements not met: bodyId={} kind={} count={}", bodyId, k, count);
       throw new RequirementsNotMetException();
     }

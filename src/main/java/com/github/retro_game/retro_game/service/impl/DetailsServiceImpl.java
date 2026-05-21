@@ -102,11 +102,16 @@ class DetailsServiceImpl implements DetailsService {
   }
 
   @Override
-  public TechnologyDetailsDto getTechnologyDetails(long bodyId, TechnologyKindDto kind) {
+  public TechnologyDetailsDto getTechnologyDetails(long bodyId, String kind) {
     long userId = CustomUser.getCurrentUserId();
     User user = userRepository.getOne(userId);
 
-    TechnologyKind k = Converter.convert(kind);
+    TechnologyKind k;
+    try {
+      k = TechnologyKind.valueOf(kind);
+    } catch (IllegalArgumentException e) {
+      throw new IllegalArgumentException("Unknown technology kind: " + kind, e);
+    }
 
     int currentLevel = user.getTechnologyLevel(k);
     int futureLevel = currentLevel + (int) user.getTechnologyQueue().values().stream()
@@ -117,11 +122,16 @@ class DetailsServiceImpl implements DetailsService {
   }
 
   @Override
-  public UnitDetailsDto getUnitDetails(long bodyId, UnitKindDto kind) {
+  public UnitDetailsDto getUnitDetails(long bodyId, String kind) {
     long userId = CustomUser.getCurrentUserId();
     User user = userRepository.getOne(userId);
 
-    UnitKind k = Converter.convert(kind);
+    UnitKind k;
+    try {
+      k = UnitKind.valueOf(kind);
+    } catch (IllegalArgumentException e) {
+      throw new IllegalArgumentException("Unknown unit kind: " + kind, e);
+    }
     UnitItem item = UnitItem.getAll().get(k);
 
     double weapons = unitService.getWeapons(k, user);

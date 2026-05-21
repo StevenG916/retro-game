@@ -164,7 +164,7 @@ public class TechnologyServiceImpl implements TechnologyServiceInternal {
       }
 
       var entry =
-          new TechnologyQueueEntryDto(Converter.convert(curKind), cur.getKey(), curLevelTo, Converter.convert(curCost),
+          new TechnologyQueueEntryDto(curKind.name(), cur.getKey(), curLevelTo, Converter.convert(curCost),
               curEnergy, curBodyId, effectiveLabLevel, Date.from(Instant.ofEpochSecond(finishAt)), downMovable,
               upMovable, cancelable);
       ret.add(entry);
@@ -187,8 +187,16 @@ public class TechnologyServiceImpl implements TechnologyServiceInternal {
     var irnLevel = user.getTechnologyLevel(TechnologyKind.INTERGALACTIC_RESEARCH_NETWORK);
 
     var technologies = new ArrayList<TechnologyDto>(TechnologyKindDto.values().length);
-    for (var entry : TechnologyItem.getAll().entrySet()) {
-      var kind = entry.getKey();
+    // Iterate the content catalog rather than the TechnologyKind enum, so admin-panel
+    // edits are reflected. A catalog item whose kind isn't a built-in TechnologyKind
+    // (a future admin-created technology) is not supported yet, so it is skipped.
+    for (var ci : CatalogItem.allOfType(ItemType.TECHNOLOGY)) {
+      TechnologyKind kind;
+      try {
+        kind = TechnologyKind.valueOf(ci.getKind());
+      } catch (IllegalArgumentException e) {
+        continue;
+      }
 
       var currentLevel = user.getTechnologyLevel(kind);
       var futureLevel = state.getOrDefault(kind, 0);
@@ -223,7 +231,7 @@ public class TechnologyServiceImpl implements TechnologyServiceInternal {
           isQueueNotFull && meetsRequirements && (queueSize > 0 || (hasEnoughResources && hasEnoughEnergy));
 
       var technology =
-          new TechnologyDto(Converter.convert(kind), currentLevel, futureLevel, Converter.convert(cost), requiredEnergy,
+          new TechnologyDto(kind.name(), currentLevel, futureLevel, Converter.convert(cost), requiredEnergy,
               researchTime, effectiveLabLevel, Converter.convert(missingResources), neededSmallCargoes,
               neededLargeCargoes, accumulationTime, canResearchNow);
       technologies.add(technology);
@@ -234,8 +242,13 @@ public class TechnologyServiceImpl implements TechnologyServiceInternal {
 
   @Override
   @Transactional(isolation = Isolation.REPEATABLE_READ)
-  public void research(long bodyId, TechnologyKindDto kind) {
-    TechnologyKind k = Converter.convert(kind);
+  public void research(long bodyId, String kind) {
+    TechnologyKind k;
+    try {
+      k = TechnologyKind.valueOf(kind);
+    } catch (IllegalArgumentException e) {
+      throw new IllegalArgumentException("Unknown technology kind: " + kind, e);
+    }
 
     long userId = CustomUser.getCurrentUserId();
     User user = userRepository.getOne(userId);

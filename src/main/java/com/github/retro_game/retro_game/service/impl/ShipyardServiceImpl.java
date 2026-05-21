@@ -2,11 +2,11 @@ package com.github.retro_game.retro_game.service.impl;
 
 import com.github.retro_game.retro_game.dto.*;
 import com.github.retro_game.retro_game.entity.*;
+import com.github.retro_game.retro_game.model.CatalogItem;
 import com.github.retro_game.retro_game.model.ItemCostUtils;
 import com.github.retro_game.retro_game.model.ItemRequirementsUtils;
 import com.github.retro_game.retro_game.model.ItemTimeUtils;
 import com.github.retro_game.retro_game.model.ItemUtils;
-import com.github.retro_game.retro_game.model.unit.UnitItem;
 import com.github.retro_game.retro_game.service.exception.*;
 import io.vavr.Tuple;
 import io.vavr.Tuple2;
@@ -79,7 +79,7 @@ public class ShipyardServiceImpl implements ShipyardServiceInternal {
         finishAt += (count + numPerSec - 1) / numPerSec;
       }
 
-      ret.add(new ShipyardQueueEntryDto(Converter.convert(kind), count, Converter.convert(totalCost),
+      ret.add(new ShipyardQueueEntryDto(kind.name(), count, Converter.convert(totalCost),
           Date.from(Instant.ofEpochSecond(finishAt))));
 
       // Update the state.
@@ -91,21 +91,35 @@ public class ShipyardServiceImpl implements ShipyardServiceInternal {
 
   private List<UnitDto> getUnits(EnumMap<UnitKind, Integer> state, Body body, ProductionDto production,
                                  UnitTypeDto type) {
-    Map<UnitKind, UnitItem> items;
-    if (type == null) {
-      items = UnitItem.getAll();
-    } else if (type == UnitTypeDto.DEFENSE) {
-      items = UnitItem.getDefense();
+    // The fleet/defense filter, as the catalog's UnitType; null shows both.
+    UnitType filterType = null;
+    if (type == UnitTypeDto.DEFENSE) {
+      filterType = UnitType.DEFENSE;
+    } else if (type == UnitTypeDto.FLEET) {
+      filterType = UnitType.FLEET;
     } else {
-      assert type == UnitTypeDto.FLEET;
-      items = UnitItem.getFleet();
+      assert type == null;
     }
 
     var resources = body.getResources();
 
-    var units = new ArrayList<UnitDto>(items.size());
-    for (var entry : items.entrySet()) {
-      var kind = entry.getKey();
+    // Iterate the content catalog rather than the UnitKind enum, so admin-panel
+    // edits are reflected. A catalog item whose kind isn't a built-in UnitKind
+    // (a future admin-created unit) is not supported yet, so it is skipped.
+    var catalogItems = CatalogItem.allOfType(ItemType.UNIT);
+    var units = new ArrayList<UnitDto>(catalogItems.size());
+    for (var ci : catalogItems) {
+      // Only show units of the requested fleet/defense type.
+      if (filterType != null && ci.getUnitType() != filterType) {
+        continue;
+      }
+
+      UnitKind kind;
+      try {
+        kind = UnitKind.valueOf(ci.getKind());
+      } catch (IllegalArgumentException e) {
+        continue;
+      }
 
       var currentCount = body.getUnitsCount(kind);
       var futureCount = currentCount + state.getOrDefault(kind, 0);
@@ -150,7 +164,7 @@ public class ShipyardServiceImpl implements ShipyardServiceInternal {
         }
       }
 
-      var unit = new UnitDto(Converter.convert(kind), currentCount, futureCount, Converter.convert(cost), time,
+      var unit = new UnitDto(kind.name(), currentCount, futureCount, Converter.convert(cost), time,
           Converter.convert(missingResources), neededSmallCargoes, neededLargeCargoes, accumulationTime, maxBuildable);
       units.add(unit);
     }
@@ -204,8 +218,13 @@ public class ShipyardServiceImpl implements ShipyardServiceInternal {
 
   @Override
   @Transactional(isolation = Isolation.REPEATABLE_READ)
-  public void build(long bodyId, UnitKindDto kind, int count) {
-    UnitKind k = Converter.convert(kind);
+  public void build(long bodyId, String kind, int count) {
+    UnitKind k;
+    try {
+      k = UnitKind.valueOf(kind);
+    } catch (IllegalArgumentException e) {
+      throw new IllegalArgumentException("Unknown unit kind: " + kind, e);
+    }
 
     Body body = bodyServiceInternal.getUpdated(bodyId);
 

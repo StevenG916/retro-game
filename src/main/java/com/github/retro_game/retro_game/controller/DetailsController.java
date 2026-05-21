@@ -2,7 +2,6 @@ package com.github.retro_game.retro_game.controller;
 
 import com.github.retro_game.retro_game.controller.activity.Activity;
 import com.github.retro_game.retro_game.dto.TechnologyKindDto;
-import com.github.retro_game.retro_game.dto.UnitKindDto;
 import com.github.retro_game.retro_game.service.BodyService;
 import com.github.retro_game.retro_game.service.DetailsService;
 import com.github.retro_game.retro_game.service.UserService;
@@ -43,7 +42,7 @@ public class DetailsController {
   @GetMapping("/details/technology")
   @PreAuthorize("hasPermission(#bodyId, 'ACCESS')")
   @Activity(bodies = "#bodyId")
-  public String technologyDetails(@RequestParam(name = "body") long bodyId, @RequestParam TechnologyKindDto kind,
+  public String technologyDetails(@RequestParam(name = "body") long bodyId, @RequestParam String kind,
                                   Model model) {
     model.addAttribute("bodyId", bodyId);
     model.addAttribute("kind", kind);
@@ -55,7 +54,7 @@ public class DetailsController {
   @GetMapping("/details/unit")
   @PreAuthorize("hasPermission(#bodyId, 'ACCESS')")
   @Activity(bodies = "#bodyId")
-  public String unitDetails(@RequestParam(name = "body") long bodyId, @RequestParam UnitKindDto kind, Model model) {
+  public String unitDetails(@RequestParam(name = "body") long bodyId, @RequestParam String kind, Model model) {
     model.addAttribute("bodyId", bodyId);
     model.addAttribute("kind", kind);
     model.addAttribute("ctx", userService.getCurrentUserContext(bodyId));

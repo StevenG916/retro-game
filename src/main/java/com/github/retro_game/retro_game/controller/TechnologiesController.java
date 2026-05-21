@@ -2,7 +2,6 @@ package com.github.retro_game.retro_game.controller;
 
 import com.github.retro_game.retro_game.controller.activity.Activity;
 import com.github.retro_game.retro_game.dto.BodyInfoDto;
-import com.github.retro_game.retro_game.dto.TechnologyKindDto;
 import com.github.retro_game.retro_game.dto.TechnologyQueueErrorDto;
 import com.github.retro_game.retro_game.service.TechnologyService;
 import com.github.retro_game.retro_game.service.UserService;
@@ -79,7 +78,7 @@ public class TechnologiesController {
   @PreAuthorize("hasPermission(#bodyId, 'ACCESS')")
   @Activity(bodies = "#bodyId")
   public String research(@RequestParam(name = "body") long bodyId,
-                         @RequestParam @NotNull TechnologyKindDto kind) {
+                         @RequestParam @NotNull String kind) {
     return perform(bodyId, () -> {
       technologyService.research(bodyId, kind);
       return 0;

@@ -3,7 +3,6 @@ package com.github.retro_game.retro_game.service.impl;
 import com.github.retro_game.retro_game.dto.*;
 import com.github.retro_game.retro_game.entity.*;
 import com.github.retro_game.retro_game.model.*;
-import com.github.retro_game.retro_game.model.building.BuildingItem;
 import com.github.retro_game.retro_game.repository.BodyRepository;
 import com.github.retro_game.retro_game.repository.EventRepository;
 import com.github.retro_game.retro_game.service.exception.*;
@@ -229,12 +228,11 @@ public class BuildingsServiceImpl implements BuildingsServiceInternal {
       } catch (IllegalArgumentException e) {
         continue;
       }
-      var item = Item.get(kind);
 
       var currentLevel = body.getBuildingLevel(kind);
       var futureLevel = state.buildings.get(kind);
 
-      var meetsRequirements = meetsSpecialRequirements(body, item, kind) &&
+      var meetsRequirements = meetsSpecialRequirements(body, kind) &&
           ItemRequirementsUtils.meetsBuildingsRequirements(kind.name(), state.buildings) &&
           (queueSize > 0 || ItemRequirementsUtils.meetsTechnologiesRequirements(kind.name(), body.getUser()));
 
@@ -337,8 +335,7 @@ public class BuildingsServiceImpl implements BuildingsServiceInternal {
       throw new NoMoreFreeFieldsException();
     }
 
-    var item = Item.get(k);
-    if (!meetsSpecialRequirements(body, item, k) ||
+    if (!meetsSpecialRequirements(body, k) ||
         !ItemRequirementsUtils.meetsBuildingsRequirements(k.name(), state.buildings) ||
         (queue.isEmpty() && !ItemRequirementsUtils.meetsTechnologiesRequirements(k.name(), body.getUser()))) {
       logger.info("Constructing building failed, requirements not met: bodyId={} kind={}", bodyId, k);
@@ -851,7 +848,7 @@ public class BuildingsServiceImpl implements BuildingsServiceInternal {
     // The second building will always meet requirements when the first action is destroy.
     if (first.action() == BuildingQueueAction.CONSTRUCT) {
       if (second.action() == BuildingQueueAction.CONSTRUCT) {
-        var requirements = Item.get(second.kind()).getBuildingsRequirements();
+        var requirements = CatalogItem.of(second.kind().name()).getBuildingsRequirements();
         if (requirements.getOrDefault(first.kind(), 0) >
             state.buildings.getOrDefault(first.kind(), 0)) {
           return false;
@@ -861,7 +858,7 @@ public class BuildingsServiceImpl implements BuildingsServiceInternal {
         if (!state.buildings.containsKey(second.kind())) {
           return false;
         }
-        var requirements = Item.get(first.kind()).getBuildingsRequirements();
+        var requirements = CatalogItem.of(first.kind().name()).getBuildingsRequirements();
         int levelAfterDeconstruction = state.buildings.get(second.kind()) - 1;
         assert levelAfterDeconstruction >= 0;
         if (requirements.getOrDefault(second.kind(), 0) > levelAfterDeconstruction) {
@@ -936,7 +933,7 @@ public class BuildingsServiceImpl implements BuildingsServiceInternal {
           level--;
         }
       } else {
-        var requirements = Item.get(currentKind).getBuildingsRequirements();
+        var requirements = CatalogItem.of(currentKind.name()).getBuildingsRequirements();
         if (requirements.getOrDefault(firstKind, 0) > level) {
           return false;
         }
@@ -946,8 +943,10 @@ public class BuildingsServiceImpl implements BuildingsServiceInternal {
     return true;
   }
 
-  private boolean meetsSpecialRequirements(Body body, BuildingItem item, BuildingKind kind) {
-    boolean meetsRequirements = item.meetsSpecialRequirements(body);
+  private boolean meetsSpecialRequirements(Body body, BuildingKind kind) {
+    // The body restriction (planet-only / moon-only) is code-only behavior; the
+    // catalog item supplies it through the kind-keyed behavior registry.
+    boolean meetsRequirements = CatalogItem.of(kind.name()).meetsSpecialRequirements(body);
     if (kind == BuildingKind.NANITE_FACTORY && body.getCoordinates().getKind() == CoordinatesKind.MOON &&
         !allowNanitesOnMoon) {
       meetsRequirements = false;

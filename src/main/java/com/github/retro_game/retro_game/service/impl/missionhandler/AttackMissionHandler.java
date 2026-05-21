@@ -7,9 +7,8 @@ import com.github.retro_game.retro_game.battleengine.UnitGroupStats;
 import com.github.retro_game.retro_game.dto.MoonCreationResultDto;
 import com.github.retro_game.retro_game.dto.MoonDestructionResultDto;
 import com.github.retro_game.retro_game.entity.*;
-import com.github.retro_game.retro_game.model.Item;
+import com.github.retro_game.retro_game.model.CatalogItem;
 import com.github.retro_game.retro_game.model.ItemCostUtils;
-import com.github.retro_game.retro_game.model.unit.UnitItem;
 import com.github.retro_game.retro_game.repository.*;
 import com.github.retro_game.retro_game.service.ActivityService;
 import com.github.retro_game.retro_game.service.BodyCreationService;
@@ -377,6 +376,7 @@ public class AttackMissionHandler {
     var defenseLoss = new Resources();
     var alive = false;
 
+    var fleetKinds = CatalogItem.unitKindsOfType(UnitType.FLEET);
     for (var kind : fightUnitKinds) {
       var numBeforeBattle = (long) units.getOrDefault(kind, 0);
       var numAfterBattle = lastRoundStats.get(kind).numRemainingUnits();
@@ -388,7 +388,7 @@ public class AttackMissionHandler {
 
       var numLost = numBeforeBattle - numAfterBattle;
 
-      var isFleet = UnitItem.getFleet().containsKey(kind);
+      var isFleet = fleetKinds.contains(kind);
       var rebuildFactor = isFleet ? fleetRebuildFactor : defenseRebuildFactor;
       var numRebuilt = calcNumRebuiltUnits(numLost, rebuildFactor);
 
@@ -656,8 +656,7 @@ public class AttackMissionHandler {
       if (excludeEspionageProbes && kind == UnitKind.ESPIONAGE_PROBE) {
         continue;
       }
-      var item = Item.get(kind);
-      capacity += (long) count * item.getCapacity();
+      capacity += (long) count * CatalogItem.of(kind.name()).getCapacity();
     }
     return capacity;
   }

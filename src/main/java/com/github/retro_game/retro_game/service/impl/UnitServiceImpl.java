@@ -3,7 +3,7 @@ package com.github.retro_game.retro_game.service.impl;
 import com.github.retro_game.retro_game.entity.TechnologyKind;
 import com.github.retro_game.retro_game.entity.UnitKind;
 import com.github.retro_game.retro_game.entity.User;
-import com.github.retro_game.retro_game.model.unit.UnitItem;
+import com.github.retro_game.retro_game.model.CatalogItem;
 import com.github.retro_game.retro_game.service.CatalogService;
 import org.springframework.stereotype.Service;
 
@@ -11,7 +11,9 @@ import org.springframework.stereotype.Service;
 class UnitServiceImpl implements UnitService {
   @Override
   public int getSpeed(UnitKind kind, User user) {
-    UnitItem item = UnitItem.getAll().get(kind);
+    // Propulsion (base speed and drive) is code-only behavior; the catalog item
+    // supplies it through the kind-keyed behavior registry.
+    CatalogItem item = CatalogItem.of(kind.name());
 
     int speed = item.getBaseSpeed(user);
     if (speed == 0) {

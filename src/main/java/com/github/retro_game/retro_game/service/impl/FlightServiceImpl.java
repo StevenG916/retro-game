@@ -3,9 +3,8 @@ package com.github.retro_game.retro_game.service.impl;
 import com.github.retro_game.retro_game.cache.BodyInfoCache;
 import com.github.retro_game.retro_game.dto.*;
 import com.github.retro_game.retro_game.entity.*;
-import com.github.retro_game.retro_game.model.Item;
+import com.github.retro_game.retro_game.model.CatalogItem;
 import com.github.retro_game.retro_game.model.ItemUtils;
-import com.github.retro_game.retro_game.model.unit.UnitItem;
 import com.github.retro_game.retro_game.repository.*;
 import com.github.retro_game.retro_game.security.CustomUser;
 import com.github.retro_game.retro_game.service.ActivityService;
@@ -192,15 +191,14 @@ class FlightServiceImpl implements FlightServiceInternal {
   public Map<UnitKindDto, FlyableUnitInfoDto> getFlyableUnits(long bodyId) {
     var body = bodyServiceInternal.getUpdated(bodyId);
     User user = body.getUser();
-    return UnitItem.getFleet().entrySet().stream()
-        .filter(e -> e.getKey() != UnitKind.SOLAR_SATELLITE)
+    return CatalogItem.unitKindsOfType(UnitType.FLEET).stream()
+        .filter(kind -> kind != UnitKind.SOLAR_SATELLITE)
         .collect(Collectors.toMap(
-            e -> Converter.convert(e.getKey()),
-            e -> {
-              UnitKind kind = e.getKey();
+            Converter::convert,
+            kind -> {
               int count = body.getUnitsCount(kind);
-              UnitItem item = e.getValue();
-              int capacity = item.getCapacity();
+              CatalogItem item = CatalogItem.of(kind.name());
+              int capacity = (int) item.getCapacity();
               int consumption = item.getConsumption(user);
               int speed = unitService.getSpeed(kind, user);
               double weapons = unitService.getWeapons(kind, user);
@@ -273,9 +271,10 @@ class FlightServiceImpl implements FlightServiceInternal {
     }
 
     EnumMap<UnitKind, Integer> units = new EnumMap<>(UnitKind.class);
+    var fleetKinds = CatalogItem.unitKindsOfType(UnitType.FLEET);
     for (var entry : params.getUnits().entrySet()) {
       UnitKind kind = Converter.convert(entry.getKey());
-      if (kind == UnitKind.SOLAR_SATELLITE || !UnitItem.getFleet().containsKey(kind))
+      if (kind == UnitKind.SOLAR_SATELLITE || !fleetKinds.contains(kind))
         continue;
       Integer count = entry.getValue();
       if (count == null)
@@ -630,15 +629,14 @@ class FlightServiceImpl implements FlightServiceInternal {
   private double calculateConsumption(User user, int distance, int factor, int maxSpeed, Map<UnitKind, Integer> units) {
     assert factor >= 1 && factor <= 10;
     assert !units.isEmpty();
-    Map<UnitKind, UnitItem> fleet = UnitItem.getFleet();
     double f = 0.1 * factor;
     return 1 + Math.round(units.entrySet().stream()
         .mapToDouble(e -> {
           UnitKind kind = e.getKey();
-          UnitItem unit = fleet.get(kind);
+          var consumption = CatalogItem.of(kind.name()).getConsumption(user);
           int count = e.getValue();
           double x = f * Math.sqrt((double) maxSpeed / unitService.getSpeed(kind, user)) + 1.0;
-          return count * ((double) unit.getConsumption(user) * distance / 35000.0) * x * x;
+          return count * ((double) consumption * distance / 35000.0) * x * x;
         })
         .sum());
   }
@@ -646,7 +644,7 @@ class FlightServiceImpl implements FlightServiceInternal {
   private long calculateCapacity(Map<UnitKind, Integer> units) {
     assert !units.isEmpty();
     return units.entrySet().stream()
-        .mapToLong(e -> (long) e.getValue() * Item.get(e.getKey()).getCapacity())
+        .mapToLong(e -> (long) e.getValue() * CatalogItem.of(e.getKey().name()).getCapacity())
         .sum();
   }
 
@@ -673,8 +671,8 @@ class FlightServiceImpl implements FlightServiceInternal {
     long userId = user.getId();
 
     var mainTargetKind = Converter.convert(mainTarget);
-    if (!UnitItem.getDefense().containsKey(mainTargetKind) || mainTargetKind == UnitKind.ANTI_BALLISTIC_MISSILE ||
-        mainTargetKind == UnitKind.INTERPLANETARY_MISSILE) {
+    if (!CatalogItem.unitKindsOfType(UnitType.DEFENSE).contains(mainTargetKind) ||
+        mainTargetKind == UnitKind.ANTI_BALLISTIC_MISSILE || mainTargetKind == UnitKind.INTERPLANETARY_MISSILE) {
       logger.warn("Sending missiles failed, wrong main target: userId={} bodyId={} targetCoordinates={}" +
               " numMissiles={} mainTarget={}",
           userId, bodyId, targetCoordinates, numMissiles, mainTargetKind);
@@ -1023,8 +1021,9 @@ class FlightServiceImpl implements FlightServiceInternal {
       // If not only probes sent for espionage, always counter.
       counterChance = 1.0;
     } else {
+      var fleetKinds = CatalogItem.unitKindsOfType(UnitType.FLEET);
       int numTargetShips = body.getUnits().entrySet().stream()
-          .filter(e -> UnitItem.getFleet().containsKey(e.getKey()))
+          .filter(e -> fleetKinds.contains(e.getKey()))
           .mapToInt(Map.Entry::getValue)
           .sum();
       numTargetShips += holdingFlights.stream()
@@ -1071,13 +1070,13 @@ class FlightServiceImpl implements FlightServiceInternal {
 
       long totalCapacity = 0;
       for (var entry : flight.getUnits().entrySet()) {
-        totalCapacity += (long) entry.getValue() * Item.get(entry.getKey()).getCapacity();
+        totalCapacity += (long) entry.getValue() * CatalogItem.of(entry.getKey().name()).getCapacity();
       }
       totalCapacity -= (long) Math.ceil(flightResources.getMetal() + flightResources.getCrystal() +
           flightResources.getDeuterium());
       var numRecyclers = flight.getUnitsCount(UnitKind.RECYCLER);
       assert numRecyclers >= 1;
-      long recCapacity = (long) numRecyclers * UnitItem.getFleet().get(UnitKind.RECYCLER).getCapacity();
+      long recCapacity = (long) numRecyclers * CatalogItem.of(UnitKind.RECYCLER.name()).getCapacity();
       long capacity = Math.min(recCapacity, totalCapacity);
 
       DebrisField debrisField = debrisFieldOptional.get();
@@ -1200,7 +1199,7 @@ class FlightServiceImpl implements FlightServiceInternal {
     }
 
     var mainTarget = flight.getMainTarget();
-    if (mainTarget == null || !UnitItem.getDefense().containsKey(mainTarget)
+    if (mainTarget == null || !CatalogItem.unitKindsOfType(UnitType.DEFENSE).contains(mainTarget)
         || mainTarget == UnitKind.ANTI_BALLISTIC_MISSILE || mainTarget == UnitKind.INTERPLANETARY_MISSILE) {
       logger.error("Missile attack, wrong main target, assuming rocket launcher as main target: flightId={}" +
               "startUserId={} startBodyId={} targetUserId={} targetBodyId={} arrivalAt='{}' mainTarget={}",
@@ -1250,12 +1249,12 @@ class FlightServiceImpl implements FlightServiceInternal {
       return;
     }
 
-    Map<UnitKind, UnitItem> defense = UnitItem.getDefense();
+    var defenseKinds = CatalogItem.unitKindsOfType(UnitType.DEFENSE);
     var units = body.getUnits().entrySet().stream()
         .filter(e -> {
           var kind = e.getKey();
           var count = e.getValue();
-          return count > 0 && defense.containsKey(kind) && kind != UnitKind.ANTI_BALLISTIC_MISSILE &&
+          return count > 0 && defenseKinds.contains(kind) && kind != UnitKind.ANTI_BALLISTIC_MISSILE &&
               kind != UnitKind.INTERPLANETARY_MISSILE;
         })
         .collect(Collectors.toMap(

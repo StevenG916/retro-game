@@ -569,10 +569,11 @@ create table user_password_reset_tokens (
 
 -- Content catalog
 --
--- The catalog of buildings, technologies and units. This is phase 1 of the
--- data-driven content rebuild: rows are seeded from the previously hardcoded
--- item values and edited through the admin panel; later phases make the game
--- read its content from this table instead of the hardcoded Java classes.
+-- The catalog of buildings, technologies and units, the data-driven content
+-- store the game reads from at runtime and the admin panel edits. The 57
+-- built-in items and their requirements are inserted by CatalogSeeder on first
+-- start, from the checked-in seed script sql/catalog-seed.sql (a copy lives on
+-- the classpath); these tables start empty.
 
 create table item_definitions (
   id bigserial primary key,

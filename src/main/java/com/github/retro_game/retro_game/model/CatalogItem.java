@@ -9,19 +9,20 @@ import com.github.retro_game.retro_game.entity.TechnologyKind;
 import com.github.retro_game.retro_game.entity.UnitKind;
 import com.github.retro_game.retro_game.entity.UnitType;
 import com.github.retro_game.retro_game.entity.User;
-import com.github.retro_game.retro_game.model.building.BuildingItem;
-import com.github.retro_game.retro_game.model.unit.UnitItem;
+import com.github.retro_game.retro_game.model.behavior.ItemBehaviorRegistry;
 import com.github.retro_game.retro_game.service.CatalogService;
 import org.springframework.lang.Nullable;
 
 import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * A unified, kind-keyed view of one catalog item — the seam the data-driven
- * content rebuild's later stages code against, in place of the {@code *Kind}
- * enums and the hardcoded {@code BuildingItem}/{@code TechnologyItem}/{@code
+ * content rebuild codes against, in place of the {@code *Kind} enums and the
+ * (now removed) hardcoded {@code BuildingItem}/{@code TechnologyItem}/{@code
  * UnitItem} classes.
  *
  * <p>It joins the two halves of an item's definition:
@@ -31,10 +32,12 @@ import java.util.Map;
  *       ({@link CatalogService}), so it reflects admin-panel edits.</li>
  *   <li><b>Behavior</b> — special build requirements, propulsion, fuel
  *       consumption and rapid fire — which is still expressed in code, with no
- *       catalog representation. For a built-in item this is delegated to its
- *       legacy model class; an admin-created item has no model class, so it
- *       falls back to neutral defaults (no special requirement, no drive, no
- *       rapid fire). Making that behavior data-driven too is future work.</li>
+ *       catalog representation. It is keyed by the item's {@code kind} String
+ *       and supplied by {@link ItemBehaviorRegistry}: a built-in item gets the
+ *       behavior moved out of its old model class, while an admin-created item
+ *       (whose kind is in no {@code *Kind} enum) gets neutral defaults — no
+ *       special requirement, no drive, zero consumption and speed, no rapid
+ *       fire. Making that behavior data-driven too is future work.</li>
  * </ul>
  *
  * <p>Instances are cheap, immutable wrappers; build them with the factory
@@ -42,19 +45,14 @@ import java.util.Map;
  */
 public class CatalogItem {
   private final ItemDefinition definition;
-  // The legacy model object, present only for built-in items; null for an item
-  // created through the admin panel (it has no enum constant, hence no class).
-  @Nullable
-  private final Item legacy;
 
-  private CatalogItem(ItemDefinition definition, @Nullable Item legacy) {
+  private CatalogItem(ItemDefinition definition) {
     this.definition = definition;
-    this.legacy = legacy;
   }
 
-  /** Wraps a catalog definition, resolving its legacy behavior if it is a built-in item. */
+  /** Wraps a catalog definition. */
   public static CatalogItem of(ItemDefinition definition) {
-    return new CatalogItem(definition, resolveLegacy(definition));
+    return new CatalogItem(definition);
   }
 
   /** Returns the catalog item with the given kind, e.g. {@code "METAL_MINE"}. */
@@ -67,19 +65,28 @@ public class CatalogItem {
     return CatalogService.getInstance().getAllByType(type).stream().map(CatalogItem::of).toList();
   }
 
-  @Nullable
-  private static Item resolveLegacy(ItemDefinition definition) {
-    // Built-in items share their kind with an enum constant; admin-created ones
-    // do not, so valueOf throws and there is no legacy behavior to delegate to.
-    try {
-      return switch (definition.getType()) {
-        case BUILDING -> Item.get(BuildingKind.valueOf(definition.getKind()));
-        case TECHNOLOGY -> Item.get(TechnologyKind.valueOf(definition.getKind()));
-        case UNIT -> Item.get(UnitKind.valueOf(definition.getKind()));
-      };
-    } catch (IllegalArgumentException e) {
-      return null;
+  /**
+   * Returns the built-in {@link UnitKind}s of the given {@link UnitType} (fleet
+   * ships or defensive structures), read from the content catalog.
+   *
+   * <p>This replaces the old {@code UnitItem.getFleet()} / {@code
+   * UnitItem.getDefense()} key sets. A catalog unit whose kind is not a
+   * built-in {@code UnitKind} — a future admin-created unit — is skipped, just
+   * as it had no entry in those maps.
+   */
+  public static Set<UnitKind> unitKindsOfType(UnitType unitType) {
+    var kinds = EnumSet.noneOf(UnitKind.class);
+    for (var item : allOfType(ItemType.UNIT)) {
+      if (item.getUnitType() != unitType) {
+        continue;
+      }
+      try {
+        kinds.add(UnitKind.valueOf(item.getKind()));
+      } catch (IllegalArgumentException e) {
+        // Not a built-in unit kind; skip it.
+      }
     }
+    return kinds;
   }
 
   // --- Identity and data, from the content catalog ---
@@ -174,31 +181,33 @@ public class CatalogItem {
     return requirements;
   }
 
-  // --- Behavior, still expressed in code (delegated to the legacy model) ---
+  // --- Behavior, still expressed in code (supplied by ItemBehaviorRegistry) ---
 
   /** Whether a building may be constructed on the given body (e.g. moon-only buildings). */
   public boolean meetsSpecialRequirements(Body body) {
-    return !(legacy instanceof BuildingItem building) || building.meetsSpecialRequirements(body);
+    // Only buildings have a body restriction; technologies and units have none.
+    return getType() != ItemType.BUILDING
+        || ItemBehaviorRegistry.buildingBehavior(getKind()).meetsSpecialRequirements(body);
   }
 
   /** A unit's deuterium consumption for the given user's drive technology levels. */
   public int getConsumption(User user) {
-    return legacy instanceof UnitItem unit ? unit.getConsumption(user) : 0;
+    return getType() == ItemType.UNIT ? ItemBehaviorRegistry.unitBehavior(getKind()).getConsumption(user) : 0;
   }
 
   /** The drive technology a unit currently flies on for the given user; null if it has none. */
   @Nullable
   public TechnologyKind getDrive(User user) {
-    return legacy instanceof UnitItem unit ? unit.getDrive(user) : null;
+    return getType() == ItemType.UNIT ? ItemBehaviorRegistry.unitBehavior(getKind()).getDrive(user) : null;
   }
 
   /** A unit's base speed for the given user's drive technology levels. */
   public int getBaseSpeed(User user) {
-    return legacy instanceof UnitItem unit ? unit.getBaseSpeed(user) : 0;
+    return getType() == ItemType.UNIT ? ItemBehaviorRegistry.unitBehavior(getKind()).getBaseSpeed(user) : 0;
   }
 
   /** How many extra shots this unit gets against each other unit kind. */
   public Map<UnitKind, Integer> getRapidFireAgainst() {
-    return legacy instanceof UnitItem unit ? unit.getRapidFireAgainst() : Map.of();
+    return getType() == ItemType.UNIT ? ItemBehaviorRegistry.unitBehavior(getKind()).getRapidFireAgainst() : Map.of();
   }
 }

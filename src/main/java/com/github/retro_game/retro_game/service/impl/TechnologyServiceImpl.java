@@ -3,7 +3,6 @@ package com.github.retro_game.retro_game.service.impl;
 import com.github.retro_game.retro_game.dto.*;
 import com.github.retro_game.retro_game.entity.*;
 import com.github.retro_game.retro_game.model.*;
-import com.github.retro_game.retro_game.model.technology.TechnologyItem;
 import com.github.retro_game.retro_game.repository.EventRepository;
 import com.github.retro_game.retro_game.repository.UserRepository;
 import com.github.retro_game.retro_game.security.CustomUser;
@@ -31,7 +30,6 @@ public class TechnologyServiceImpl implements TechnologyServiceInternal {
   private final ItemTimeUtils itemTimeUtils;
   private final EventRepository eventRepository;
   private final UserRepository userRepository;
-  private final int maxRequiredLabLevel;
   private BodyServiceInternal bodyServiceInternal;
   private EventScheduler eventScheduler;
 
@@ -42,13 +40,18 @@ public class TechnologyServiceImpl implements TechnologyServiceInternal {
     this.itemTimeUtils = itemTimeUtils;
     this.eventRepository = eventRepository;
     this.userRepository = userRepository;
-    this.maxRequiredLabLevel = getMaxRequiredLabLevel();
   }
 
+  /**
+   * The highest research lab level any technology requires, read from the
+   * content catalog so admin-panel requirement edits are respected. Computed on
+   * demand rather than cached, as the catalog is not yet loaded when this bean
+   * is constructed.
+   */
   private static int getMaxRequiredLabLevel() {
     int max = 0;
-    for (TechnologyItem item : TechnologyItem.getAll().values()) {
-      max = Math.max(max, item.getBuildingsRequirements().getOrDefault(BuildingKind.RESEARCH_LAB, 0));
+    for (var technology : CatalogItem.allOfType(ItemType.TECHNOLOGY)) {
+      max = Math.max(max, technology.getBuildingsRequirements().getOrDefault(BuildingKind.RESEARCH_LAB, 0));
     }
     return max;
   }
@@ -652,6 +655,7 @@ public class TechnologyServiceImpl implements TechnologyServiceInternal {
 
   private Map<Long, int[]> getEffectiveLevelTables(User user, Collection<Long> bodiesIds) {
     var irnLevel = user.getTechnologyLevel(TechnologyKind.INTERGALACTIC_RESEARCH_NETWORK);
+    var maxRequiredLabLevel = getMaxRequiredLabLevel();
 
     var bodies = user.getBodies();
     var labs = bodies.entrySet().stream()
@@ -689,7 +693,7 @@ public class TechnologyServiceImpl implements TechnologyServiceInternal {
     TechnologyQueueEntry second = it.next();
 
     // Check whether the second one depends on the first one.
-    var requirements = Item.get(second.kind()).getTechnologiesRequirements();
+    var requirements = CatalogItem.of(second.kind().name()).getTechnologiesRequirements();
     return techs.get(first.kind()) >= requirements.getOrDefault(first.kind(), 0);
   }
 
@@ -709,7 +713,7 @@ public class TechnologyServiceImpl implements TechnologyServiceInternal {
       if (currentKind == firstKind) {
         level++;
       } else {
-        var requirements = Item.get(currentKind).getTechnologiesRequirements();
+        var requirements = CatalogItem.of(currentKind.name()).getTechnologiesRequirements();
         if (requirements.getOrDefault(firstKind, 0) > level) {
           return false;
         }

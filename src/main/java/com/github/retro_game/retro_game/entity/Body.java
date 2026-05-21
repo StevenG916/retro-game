@@ -1,6 +1,7 @@
 package com.github.retro_game.retro_game.entity;
 
-import io.hypersistence.utils.hibernate.type.array.IntArrayType;
+import com.github.retro_game.retro_game.entity.QueueEntries.StoredBuildingQueueEntry;
+import com.github.retro_game.retro_game.entity.QueueEntries.StoredShipyardQueueEntry;
 import io.hypersistence.utils.hibernate.type.json.JsonBinaryType;
 import org.hibernate.annotations.Type;
 
@@ -70,13 +71,17 @@ public class Body implements Serializable {
   @Type(JsonBinaryType.class)
   private Map<String, Integer> units = new HashMap<>();
 
+  // The construction queues, each a JSON array of objects whose kind/action are
+  // stored as stable item-name strings, e.g. [{"sequence": 1, "kind":
+  // "METAL_MINE", "action": "CONSTRUCT"}]. The public accessors below convert
+  // between these stored lists and the enum-typed queue types the game uses.
   @Column(name = "building_queue", nullable = false)
-  @Type(IntArrayType.class)
-  private int[] buildingQueueArray;
+  @Type(JsonBinaryType.class)
+  private List<StoredBuildingQueueEntry> buildingQueue = new ArrayList<>();
 
   @Column(name = "shipyard_queue", nullable = false)
-  @Type(IntArrayType.class)
-  private int[] shipyardQueueArray;
+  @Type(JsonBinaryType.class)
+  private List<StoredShipyardQueueEntry> shipyardQueue = new ArrayList<>();
 
   public long getId() {
     return id;
@@ -225,53 +230,37 @@ public class Body implements Serializable {
   }
 
   public SortedMap<Integer, BuildingQueueEntry> getBuildingQueue() {
-    assert buildingQueueArray.length % 3 == 0;
-    var numEntries = buildingQueueArray.length / 3;
     var queue = new TreeMap<Integer, BuildingQueueEntry>();
-    for (var i = 0; i < numEntries; i++) {
-      var sequence = buildingQueueArray[3 * i];
-      var k = buildingQueueArray[3 * i + 1];
-      var kind = BuildingKind.values()[k];
-      var a = buildingQueueArray[3 * i + 2];
-      var action = BuildingQueueAction.values()[a];
-      queue.put(sequence, new BuildingQueueEntry(kind, action));
+    for (var entry : buildingQueue) {
+      var kind = BuildingKind.valueOf(entry.kind());
+      var action = BuildingQueueAction.valueOf(entry.action());
+      queue.put(entry.sequence(), new BuildingQueueEntry(kind, action));
     }
     return queue;
   }
 
   public void setBuildingQueue(SortedMap<Integer, BuildingQueueEntry> queue) {
-    var array = new int[queue.size() * 3];
-    var i = 0;
+    var list = new ArrayList<StoredBuildingQueueEntry>(queue.size());
     for (var entry : queue.entrySet()) {
-      array[3 * i] = entry.getKey();
-      array[3 * i + 1] = entry.getValue().kind().ordinal();
-      array[3 * i + 2] = entry.getValue().action().ordinal();
-      i++;
+      list.add(new StoredBuildingQueueEntry(
+          entry.getKey(), entry.getValue().kind().name(), entry.getValue().action().name()));
     }
-    buildingQueueArray = array;
+    buildingQueue = list;
   }
 
   public List<ShipyardQueueEntry> getShipyardQueue() {
-    assert shipyardQueueArray.length % 2 == 0;
-    var numEntries = shipyardQueueArray.length / 2;
-    var queue = new ArrayList<ShipyardQueueEntry>(numEntries);
-    for (var i = 0; i < numEntries; i++) {
-      var k = shipyardQueueArray[2 * i];
-      var kind = UnitKind.values()[k];
-      var count = shipyardQueueArray[2 * i + 1];
-      queue.add(new ShipyardQueueEntry(kind, count));
+    var queue = new ArrayList<ShipyardQueueEntry>(shipyardQueue.size());
+    for (var entry : shipyardQueue) {
+      queue.add(new ShipyardQueueEntry(UnitKind.valueOf(entry.kind()), entry.count()));
     }
     return queue;
   }
 
   public void setShipyardQueue(List<ShipyardQueueEntry> queue) {
-    var array = new int[queue.size() * 2];
-    var i = 0;
+    var list = new ArrayList<StoredShipyardQueueEntry>(queue.size());
     for (var entry : queue) {
-      array[2 * i] = entry.kind().ordinal();
-      array[2 * i + 1] = entry.count();
-      i++;
+      list.add(new StoredShipyardQueueEntry(entry.kind().name(), entry.count()));
     }
-    shipyardQueueArray = array;
+    shipyardQueue = list;
   }
 }

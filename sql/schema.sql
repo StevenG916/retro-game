@@ -46,7 +46,9 @@ create table users (
   forced_vacation boolean not null,
   -- Technology levels keyed by item name, e.g. {"ENERGY_TECHNOLOGY": 5}.
   technologies jsonb not null,
-  technology_queue bigint[] not null
+  -- Research queue, a JSON array of objects keyed by item name, e.g.
+  -- [{"sequence": 1, "kind": "ASTROPHYSICS", "bodyId": 42}].
+  technology_queue jsonb not null
 );
 
 create unique index users_upper_name_idx on users (upper(name) text_pattern_ops);
@@ -131,8 +133,12 @@ create table bodies (
   -- Building levels and unit counts keyed by item name, e.g. {"METAL_MINE": 5}.
   buildings jsonb not null,
   units jsonb not null,
-  building_queue int[] not null,
-  shipyard_queue int[] not null,
+  -- Building queue, a JSON array of objects keyed by item name, e.g.
+  -- [{"sequence": 1, "kind": "METAL_MINE", "action": "CONSTRUCT"}].
+  building_queue jsonb not null,
+  -- Shipyard queue, an ordered JSON array of objects keyed by item name, e.g.
+  -- [{"kind": "SMALL_CARGO", "count": 10}].
+  shipyard_queue jsonb not null,
   unique (galaxy, system, position, kind)
 );
 

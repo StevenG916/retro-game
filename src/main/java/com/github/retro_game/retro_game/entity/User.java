@@ -1,6 +1,6 @@
 package com.github.retro_game.retro_game.entity;
 
-import io.hypersistence.utils.hibernate.type.array.LongArrayType;
+import com.github.retro_game.retro_game.entity.QueueEntries.StoredTechnologyQueueEntry;
 import io.hypersistence.utils.hibernate.type.json.JsonBinaryType;
 import org.hibernate.annotations.Type;
 import org.springframework.data.domain.Sort;
@@ -91,9 +91,13 @@ public class User {
   @Type(JsonBinaryType.class)
   private Map<String, Integer> technologies = new HashMap<>();
 
+  // The research queue, a JSON array of objects whose kind is stored as a
+  // stable item-name string, e.g. [{"sequence": 1, "kind": "ASTROPHYSICS",
+  // "bodyId": 42}]. The public accessors below convert between this stored
+  // list and the enum-typed queue type the game uses.
   @Column(name = "technology_queue", nullable = false)
-  @Type(LongArrayType.class)
-  private long[] technologyQueueArray;
+  @Type(JsonBinaryType.class)
+  private List<StoredTechnologyQueueEntry> technologyQueue = new ArrayList<>();
 
   @OneToMany(mappedBy = "user")
   @MapKey(name = "id")
@@ -300,29 +304,21 @@ public class User {
   }
 
   public SortedMap<Integer, TechnologyQueueEntry> getTechnologyQueue() {
-    assert technologyQueueArray.length % 3 == 0;
-    var numEntries = technologyQueueArray.length / 3;
     var queue = new TreeMap<Integer, TechnologyQueueEntry>();
-    for (var i = 0; i < numEntries; i++) {
-      var sequence = (int) technologyQueueArray[3 * i];
-      var k = (int) technologyQueueArray[3 * i + 1];
-      var kind = TechnologyKind.values()[k];
-      var bodyId = technologyQueueArray[3 * i + 2];
-      queue.put(sequence, new TechnologyQueueEntry(kind, bodyId));
+    for (var entry : technologyQueue) {
+      var kind = TechnologyKind.valueOf(entry.kind());
+      queue.put(entry.sequence(), new TechnologyQueueEntry(kind, entry.bodyId()));
     }
     return queue;
   }
 
   public void setTechnologyQueue(SortedMap<Integer, TechnologyQueueEntry> queue) {
-    var array = new long[queue.size() * 3];
-    var i = 0;
+    var list = new ArrayList<StoredTechnologyQueueEntry>(queue.size());
     for (var entry : queue.entrySet()) {
-      array[3 * i] = entry.getKey();
-      array[3 * i + 1] = entry.getValue().kind().ordinal();
-      array[3 * i + 2] = entry.getValue().bodyId();
-      i++;
+      list.add(new StoredTechnologyQueueEntry(
+          entry.getKey(), entry.getValue().kind().name(), entry.getValue().bodyId()));
     }
-    technologyQueueArray = array;
+    technologyQueue = list;
   }
 
   public SortedMap<Long, Body> getBodies() {

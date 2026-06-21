@@ -19,7 +19,7 @@
 <th:block
     th:fragment="item-cost(bodyCtx, cost, energy, resources, missingResources, neededSmallCargoes, neededLargeCargoes)">
   <p th:unless="${missingResources.total > 0}">
-    <th:block th:replace=":: cost(${cost}, ${energy}, ${resources})"></th:block>
+    <th:block th:replace="~{:: cost(${cost}, ${energy}, ${resources})}"></th:block>
   </p>
   <p th:if="${missingResources.total > 0}">
     <span data-tooltip data-tooltip-html
@@ -63,7 +63,7 @@
                 '</td>' +
               '</tr>' +
             '</table>'">
-      <th:block th:replace=":: cost(${cost}, ${energy}, ${resources})"></th:block>
+      <th:block th:replace="~{:: cost(${cost}, ${energy}, ${resources})}"></th:block>
     </span>
   </p>
 </th:block>

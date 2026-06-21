@@ -27,7 +27,7 @@
     </tr>
     <tr th:each="event : ${events}">
       <td th:data-timer="${event.at.time / 1000}" th:text="${#dates.format(event.at, 'yyyy-MM-dd HH:mm:ss')}"></td>
-      <td th:insert="flight-event :: flight-event(${bodyId}, ${event}, false)"></td>
+      <td th:insert="~{flight-event :: flight-event(${bodyId}, ${event}, false)}"></td>
     </tr>
   </table>
   <script th:src="@{/static/js/phalanx.js?{v}(v=${version})}"></script>

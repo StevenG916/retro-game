@@ -14,7 +14,7 @@
       <td th:text="#{user}">User</td>
       <td>
         <span
-            th:replace="user-tooltip :: user-tooltip(${bodyId}, ${party.targetUserId}, ${party.targetUserName})"></span>
+            th:replace="~{user-tooltip :: user-tooltip(${bodyId}, ${party.targetUserId}, ${party.targetUserName})}"></span>
       </td>
     </tr>
     <tr>
@@ -33,7 +33,7 @@
     </tr>
     <tr th:each="member : ${party.members}">
       <td>
-        <span th:replace="user-tooltip :: user-tooltip(${bodyId}, ${member.id}, ${member.name})"></span>
+        <span th:replace="~{user-tooltip :: user-tooltip(${bodyId}, ${member.id}, ${member.name})}"></span>
       </td>
     </tr>
   </table>

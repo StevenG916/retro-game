@@ -6,7 +6,7 @@
 </head>
 <body>
 <div layout:fragment="content">
-  <table th:replace="reports-tabs :: reports-tabs">
+  <table th:replace="~{reports-tabs :: reports-tabs}">
   </table>
   <table th:if="${#lists.isEmpty(reports)}">
     <tr>
@@ -17,7 +17,7 @@
     <tr>
       <th colspan="6" th:text="#{transportReports}">Transport reports</th>
       <th>
-        <form th:replace="reports-delete-all-form :: reports-delete-all-form('transport')"></form>
+        <form th:replace="~{reports-delete-all-form :: reports-delete-all-form('transport')}"></form>
       </th>
     </tr>
     <tr>
@@ -52,7 +52,7 @@
         <td th:text="${#dates.format(report.at, 'yyyy-MM-dd HH:mm:ss')}"></td>
         <td th:text="#{${'transportKind.' + report.kind}}"></td>
         <td>
-          <span th:replace="user-tooltip :: user-tooltip(${bodyId}, ${report.partnerId}, ${report.partnerName})"></span>
+          <span th:replace="~{user-tooltip :: user-tooltip(${bodyId}, ${report.partnerId}, ${report.partnerName})}"></span>
         </td>
         <td>
           <a th:with="c=${report.startCoordinates}"
@@ -81,7 +81,7 @@
       </tr>
     </th:block>
   </table>
-  <div th:replace="reports-pagination :: reports-pagination('transport')"></div>
+  <div th:replace="~{reports-pagination :: reports-pagination('transport')}"></div>
   <script th:src="@{/static/js/reports.js?{v}(v=${version})}"></script>
 </div>
 </body>

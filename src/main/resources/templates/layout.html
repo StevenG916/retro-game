@@ -35,11 +35,11 @@
 <div class="container">
   <div>
     <div>
-      <table th:replace="top-bar :: top-bar"></table>
+      <table th:replace="~{top-bar :: top-bar}"></table>
       <div layout:fragment="content"></div>
     </div>
   </div>
-  <nav th:replace="menu :: menu"></nav>
+  <nav th:replace="~{menu :: menu}"></nav>
 </div>
 </body>
 </html>

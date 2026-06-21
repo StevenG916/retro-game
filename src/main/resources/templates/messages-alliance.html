@@ -6,7 +6,7 @@
 </head>
 <body>
 <div layout:fragment="content">
-  <table th:replace="messages-tabs :: messages-tabs"></table>
+  <table th:replace="~{messages-tabs :: messages-tabs}"></table>
   <table>
     <tr>
       <th th:text="#{allianceMessages}">Alliance messages</th>
@@ -28,7 +28,7 @@
       </tr>
     </th:block>
   </table>
-  <div th:replace="messages-pagination :: messages-pagination('alliance')"></div>
+  <div th:replace="~{messages-pagination :: messages-pagination('alliance')}"></div>
 </div>
 </body>
 </html>

@@ -6,9 +6,9 @@
 </head>
 <body>
 <div layout:fragment="content">
-  <table th:replace="statistics-tabs :: statistics-tabs">
+  <table th:replace="~{statistics-tabs :: statistics-tabs}">
   </table>
-  <table th:replace="statistics-period :: statistics-period('distribution-changes')">
+  <table th:replace="~{statistics-period :: statistics-period('distribution-changes')}">
   </table>
   <table th:data-changes="${changes}">
     <tr>

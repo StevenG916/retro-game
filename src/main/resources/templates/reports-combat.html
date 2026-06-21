@@ -6,7 +6,7 @@
 </head>
 <body>
 <div layout:fragment="content">
-  <table th:replace="reports-tabs :: reports-tabs">
+  <table th:replace="~{reports-tabs :: reports-tabs}">
   </table>
   <table th:if="${#lists.isEmpty(reports)}">
     <tr>
@@ -17,7 +17,7 @@
     <tr>
       <th colspan="9" th:text="#{combatReports}">Combat reports</th>
       <th>
-        <form th:replace="reports-delete-all-form :: reports-delete-all-form('combat')"></form>
+        <form th:replace="~{reports-delete-all-form :: reports-delete-all-form('combat')}"></form>
       </th>
     </tr>
     <tr>
@@ -63,7 +63,7 @@
       <tr th:with="c=${report.coordinates}">
         <td th:text="${#dates.format(report.at, 'yyyy-MM-dd HH:mm:ss')}"></td>
         <td>
-          <span th:replace="user-tooltip :: user-tooltip(${bodyId}, ${report.enemyId}, ${report.enemyName})"></span>
+          <span th:replace="~{user-tooltip :: user-tooltip(${bodyId}, ${report.enemyId}, ${report.enemyName})}"></span>
         </td>
         <td>
           <a th:href="@{/galaxy(body=${bodyId},galaxy=${c.galaxy},system=${c.system},position=${c.position},kind=${c.kind})}"
@@ -110,7 +110,7 @@
       </tr>
     </th:block>
   </table>
-  <div th:replace="reports-pagination :: reports-pagination('combat')"></div>
+  <div th:replace="~{reports-pagination :: reports-pagination('combat')}"></div>
   <script th:src="@{/static/js/reports.js?{v}(v=${version})}"></script>
 </div>
 </body>

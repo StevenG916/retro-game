@@ -6,7 +6,7 @@
 </head>
 <body>
 <div layout:fragment="content">
-  <table th:replace="messages-tabs :: messages-tabs"></table>
+  <table th:replace="~{messages-tabs :: messages-tabs}"></table>
   <table>
     <tr>
       <th class="space-between">
@@ -52,7 +52,7 @@
       </tr>
     </th:block>
   </table>
-  <div th:replace="messages-pagination :: messages-pagination('private')"></div>
+  <div th:replace="~{messages-pagination :: messages-pagination('private')}"></div>
   <script th:src="@{/static/js/messages.js?{v}(v=${version})}"></script>
 </div>
 </body>

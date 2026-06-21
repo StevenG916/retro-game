@@ -38,7 +38,7 @@
     </tr>
     <tr th:each="event : ${flightEvents}">
       <td th:data-timer="${event.at.time / 1000}" th:text="${#dates.format(event.at, 'yyyy-MM-dd HH:mm:ss')}"></td>
-      <td colspan="3" th:insert="flight-event :: flight-event(${bodyId}, ${event}, true)"></td>
+      <td colspan="3" th:insert="~{flight-event :: flight-event(${bodyId}, ${event}, true)}"></td>
     </tr>
     <tr>
       <td th:if="${bodies.associatedBody != null}" class="overview-body" th:with="body=${bodies.associatedBody}">

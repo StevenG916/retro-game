@@ -30,7 +30,7 @@
       <td th:text="#{owner}">Owner</td>
       <td th:if="${alliance.ownerName == null}">-</td>
       <td th:unless="${alliance.ownerName == null}">
-        <span th:replace="user-tooltip :: user-tooltip(${bodyId}, ${alliance.ownerId}, ${alliance.ownerName})"></span>
+        <span th:replace="~{user-tooltip :: user-tooltip(${bodyId}, ${alliance.ownerId}, ${alliance.ownerName})}"></span>
       </td>
     </tr>
     <tr>

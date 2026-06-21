@@ -6,7 +6,7 @@
 </head>
 <body>
 <div layout:fragment="content">
-  <div th:replace="galaxy-navigation :: galaxy-navigation"></div>
+  <div th:replace="~{galaxy-navigation :: galaxy-navigation}"></div>
   <table th:with="onVacation=${ctx.onVacation}">
     <tr>
       <th width="30" th:text="#{slot}">Slot</th>
@@ -87,7 +87,7 @@
                                   (slot.noobProtectionRank == T(com.github.retro_game.retro_game.dto.NoobProtectionRankDto).STRONG ? 'strong' :
                                   (slot.longInactive ? 'long-inactive' :
                                   (slot.shortInactive ? 'short-inactive' : '')))))}">
-            <span th:replace="user-tooltip :: user-tooltip(${bodyId}, ${slot.userId}, ${slot.userName})"></span>
+            <span th:replace="~{user-tooltip :: user-tooltip(${bodyId}, ${slot.userId}, ${slot.userName})}"></span>
             (<span th:text="${#numbers.formatInteger(slot.rank, 1, 'DEFAULT')}">1</span>)
             <span
                 th:if="${slot.banned || slot.onVacation || slot.noobProtectionRank != T(com.github.retro_game.retro_game.dto.NoobProtectionRankDto).EQUAL || slot.shortInactive}">

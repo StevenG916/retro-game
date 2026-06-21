@@ -62,10 +62,10 @@
             <td th:text="#{deuterium}">Deuterium</td>
             <td th:text="${#numbers.formatInteger(report.resources.deuterium, 1, 'DEFAULT')}"></td>
           </tr>
-          <th:block th:replace="espionage-report-items :: items(#{fleet}, ${report.fleet})"></th:block>
-          <th:block th:replace="espionage-report-items :: items(#{defense}, ${report.defense})"></th:block>
-          <th:block th:replace="espionage-report-items :: items(#{buildings}, ${report.buildings})"></th:block>
-          <th:block th:replace="espionage-report-items :: items(#{technologies}, ${report.technologies})"></th:block>
+          <th:block th:replace="~{espionage-report-items :: items(#{fleet}, ${report.fleet})}"></th:block>
+          <th:block th:replace="~{espionage-report-items :: items(#{defense}, ${report.defense})}"></th:block>
+          <th:block th:replace="~{espionage-report-items :: items(#{buildings}, ${report.buildings})}"></th:block>
+          <th:block th:replace="~{espionage-report-items :: items(#{technologies}, ${report.technologies})}"></th:block>
         </table>
       </div>
     </div>

@@ -41,10 +41,10 @@
     <tr>
       <th colspan="2" th:text="#{technologyTree}">Technology Tree</th>
     </tr>
-    <th:block th:replace=":: tree(#{buildings}, 'building', ${tree.buildings})"></th:block>
-    <th:block th:replace=":: tree(#{technologies}, 'technology', ${tree.technologies})"></th:block>
-    <th:block th:replace=":: tree(#{fleet}, 'unit', ${tree.fleet})"></th:block>
-    <th:block th:replace=":: tree(#{defense}, 'unit', ${tree.defense})"></th:block>
+    <th:block th:replace="~{:: tree(#{buildings}, 'building', ${tree.buildings})}"></th:block>
+    <th:block th:replace="~{:: tree(#{technologies}, 'technology', ${tree.technologies})}"></th:block>
+    <th:block th:replace="~{:: tree(#{fleet}, 'unit', ${tree.fleet})}"></th:block>
+    <th:block th:replace="~{:: tree(#{defense}, 'unit', ${tree.defense})}"></th:block>
   </table>
 </div>
 </body>

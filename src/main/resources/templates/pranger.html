@@ -15,7 +15,7 @@
     </tr>
     <tr th:each="entry : ${pranger}">
       <td>
-        <span th:replace="user-tooltip :: user-tooltip(${bodyId}, ${entry.userId}, ${entry.userName})"></span>
+        <span th:replace="~{user-tooltip :: user-tooltip(${bodyId}, ${entry.userId}, ${entry.userName})}"></span>
       </td>
       <td th:text="${#dates.format(entry.at, 'yyyy-MM-dd HH:mm:ss')}"></td>
       <td th:text="${#dates.format(entry.until, 'yyyy-MM-dd HH:mm:ss')}"></td>

@@ -6,7 +6,7 @@
 </head>
 <body>
 <div layout:fragment="content">
-  <table th:replace="reports-tabs :: reports-tabs">
+  <table th:replace="~{reports-tabs :: reports-tabs}">
   </table>
   <table th:if="${#lists.isEmpty(reports)}">
     <tr>
@@ -17,7 +17,7 @@
     <tr>
       <th class="space-between">
         <span th:text="#{otherReports}">Other reports</span>
-        <form th:replace="reports-delete-all-form :: reports-delete-all-form('other')"></form>
+        <form th:replace="~{reports-delete-all-form :: reports-delete-all-form('other')}"></form>
       </th>
     </tr>
     <th:block th:each="report : ${reports}">
@@ -84,7 +84,7 @@
       </tr>
     </th:block>
   </table>
-  <div th:replace="reports-pagination :: reports-pagination('other')"></div>
+  <div th:replace="~{reports-pagination :: reports-pagination('other')}"></div>
   <script th:src="@{/static/js/reports.js?{v}(v=${version})}"></script>
 </div>
 </body>

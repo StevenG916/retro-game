@@ -28,16 +28,16 @@
       <p th:text="#{onDateFollowingFleetsMetInBattleFormat(${#dates.format(report.at, 'yyyy-MM-dd HH:mm:ss')})}">
         On 2006-06-06 03:00:00 the following fleets met in battle:
       </p>
-      <div th:replace="combat-report-combatants :: combatants(${report.attackers}, #{attacker}, ${userInfos})"></div>
-      <div th:replace="combat-report-combatants :: combatants(${report.defenders}, #{defender}, ${userInfos})"></div>
+      <div th:replace="~{combat-report-combatants :: combatants(${report.attackers}, #{attacker}, ${userInfos})}"></div>
+      <div th:replace="~{combat-report-combatants :: combatants(${report.defenders}, #{defender}, ${userInfos})}"></div>
       <th:block th:each="round,iter : ${report.rounds}">
         <p th:text="#{roundFormat(${iter.index + 1})}">
           Round 3:
         </p>
         <table
-            th:replace="combat-report-round-combatants :: round-combatants(${round.attackers}, #{attacker}, ${userInfos})"></table>
+            th:replace="~{combat-report-round-combatants :: round-combatants(${round.attackers}, #{attacker}, ${userInfos})}"></table>
         <table
-            th:replace="combat-report-round-combatants :: round-combatants(${round.defenders}, #{defender}, ${userInfos})"></table>
+            th:replace="~{combat-report-round-combatants :: round-combatants(${round.defenders}, #{defender}, ${userInfos})}"></table>
       </th:block>
       <hr>
       <p th:switch="${report.result}">

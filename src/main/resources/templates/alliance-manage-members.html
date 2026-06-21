@@ -17,7 +17,7 @@
     <tr th:each="entry,iter : ${members}">
       <td th:text="${iter.index + 1}"></td>
       <td>
-        <span th:replace="user-tooltip :: user-tooltip(${bodyId}, ${entry.userId}, ${entry.userName})"></span>
+        <span th:replace="~{user-tooltip :: user-tooltip(${bodyId}, ${entry.userId}, ${entry.userName})}"></span>
       </td>
       <td th:text="${#dates.format(entry.joinedAt, 'yyyy-MM-dd HH:mm:ss')}"></td>
       <td th:text="${entry.rank}"></td>

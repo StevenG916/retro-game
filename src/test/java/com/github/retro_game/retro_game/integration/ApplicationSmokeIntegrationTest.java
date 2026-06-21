@@ -65,7 +65,7 @@ public class ApplicationSmokeIntegrationTest extends IntegrationTest {
 
   @Test
   @Transactional
-  public void servesSettingsPage() throws Exception {
+  public void servesAuthenticatedPages() throws Exception {
     var email = "settings-smoke@test";
     var userId = userService.create(email, "settingsSmoke", "test");
     var account = userRepository.findById(userId).orElseThrow();
@@ -87,5 +87,13 @@ public class ApplicationSmokeIntegrationTest extends IntegrationTest {
             .with(csrf()))
         .andExpect(status().isOk())
         .andExpect(content().string(containsString("Settings")));
+
+    mockMvc.perform(get("/buildings")
+            .param("body", Long.toString(body.getId()))
+            .session(session)
+            .with(user(userDetails))
+            .with(csrf()))
+        .andExpect(status().isOk())
+        .andExpect(content().string(containsString("Buildings")));
   }
 }
